@@ -204,11 +204,17 @@ export class DocRendererController {
       envMeta.isSelfHosted = true;
     }
 
-    const title = opts?.title
-      ? htmlSanitize(`${opts.title} | AFFiNE`)
-      : 'AFFiNE';
+    // 分享页是公开可见的，标题与社交卡片应体现本站身份，而不是上游品牌。
+    // 站点名取 server.name（Admin 里可改，不必重新构建镜像），没配置时才
+    // 回落到 AFFiNE。
+    const siteName = this.config.server.name || 'AFFiNE';
+    const title = htmlSanitize(
+      opts?.title ? `${opts.title} | ${siteName}` : siteName
+    );
     const summary = opts ? htmlSanitize(opts.summary) : assets.description;
-    const image = opts?.avatar ?? 'https://affine.pro/og.jpeg';
+    // 上游默认挂 affine.pro 的 og 图，自托管站点不应该借用官方素材；
+    // 没有工作区头像时就不输出图片元信息，让抓取方自行回落。
+    const image = opts?.avatar;
 
     // TODO(@forehalo): parse assets/index.html
     return `<!DOCTYPE html>
@@ -242,11 +248,10 @@ export class DocRendererController {
       content="${title}"
     />
     <meta name="twitter:description" content="${summary}" />
-    <meta name="twitter:site" content="@AffineOfficial" />
-    <meta name="twitter:image" content="${image}" />
+    ${image ? `<meta name="twitter:image" content="${image}" />` : ''}
     <meta property="og:title" content="${title}" />
     <meta property="og:description" content="${summary}" />
-    <meta property="og:image" content="${image}" />
+    ${image ? `<meta property="og:image" content="${image}" />` : ''}
     ${Object.entries(envMeta)
       .map(([key, val]) => `<meta name="env:${key}" content="${val}" />`)
       .join('\n')}
