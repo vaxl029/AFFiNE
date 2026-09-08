@@ -37,6 +37,32 @@ export function assertRspackSupportedPackageName(name: string) {
 // ---------------------------------------------------------------------------
 const DEV_SERVER_PORT = Number(process.env.AFFINE_DEV_SERVER_PORT) || 8080;
 
+// ---------------------------------------------------------------------------
+// Dev API target
+// ---------------------------------------------------------------------------
+// 默认代理到本地 3010（保持上游行为）。本地跑不起后端时（Windows 上缺
+// pgvector / Redis），可以用 AFFINE_DEV_API_TARGET 指向一台真实服务器，
+// 前端就能直接调真实登录、workspace 和 GraphQL：
+//
+//   AFFINE_DEV_API_TARGET=https://example.com yarn affine @affine/web dev
+//
+// 指向远端时必须额外处理两件事，否则登录态建立不起来：
+//   - changeOrigin：把 Host 改写成目标域，否则反代/网关按 localhost 处理；
+//   - cookieDomainRewrite：把 Set-Cookie 的 Domain 去掉，让会话 cookie
+//     落在 localhost 上，否则浏览器直接丢弃，表现为"登录成功但仍未登录"。
+// ---------------------------------------------------------------------------
+const DEV_API_TARGET =
+  process.env.AFFINE_DEV_API_TARGET || 'http://localhost:3010';
+const DEV_API_IS_REMOTE = !/^https?:\/\/(localhost|127\.0\.0\.1)(:|$)/.test(
+  DEV_API_TARGET
+);
+const DEV_API_PROXY = {
+  target: DEV_API_TARGET,
+  ...(DEV_API_IS_REMOTE
+    ? { changeOrigin: true, cookieDomainRewrite: '', secure: true }
+    : {}),
+};
+
 export const DEFAULT_DEV_SERVER_CONFIG: RspackDevServerConfiguration = {
   host: '0.0.0.0',
   port: DEV_SERVER_PORT,
@@ -68,16 +94,16 @@ export const DEFAULT_DEV_SERVER_CONFIG: RspackDevServerConfiguration = {
   proxy: [
     {
       context: '/api',
-      target: 'http://localhost:3010',
+      ...DEV_API_PROXY,
     },
     {
       context: '/socket.io',
-      target: 'http://localhost:3010',
+      ...DEV_API_PROXY,
       ws: true,
     },
     {
       context: '/graphql',
-      target: 'http://localhost:3010',
+      ...DEV_API_PROXY,
     },
   ],
 };
