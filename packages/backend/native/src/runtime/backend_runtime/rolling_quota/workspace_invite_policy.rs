@@ -10,6 +10,18 @@ use super::{
   InviteQuotaConfig, RuntimeQuotaTargetDomainInput, RuntimeWorkspaceInviteQuotaInput, ScopeLimit, bucket_seconds,
   high_risk_domain, napi_error, normalize_domain, scope, short_hash, source_prefix, workspace_subject_key,
 };
+use crate::llm::Deployment;
+
+// ---------------------------------------------------------------------------
+// Self-host invite ceiling
+// ---------------------------------------------------------------------------
+// self-host 是私有可信部署，不需要 Cloud 面向陌生用户的账号年龄 / 邮箱验证 /
+// 接受率 / 高风险域名风控。但仍保留一个按席位推导的上界，用来兜住误操作
+// （例如脚本把整本通讯录一次性灌进来）。
+//
+// 512 与 GraphQL 层 `inviteMembers` 的 emails.length 上限对齐。
+// ---------------------------------------------------------------------------
+const SELFHOST_INVITE_BURST_CEILING: i32 = 512;
 
 #[derive(Clone, Debug)]
 pub(super) struct ActorFacts {
@@ -78,7 +90,13 @@ fn quota_subject(workspace_id: &str, quota: &QuotaFacts) -> (String, i32) {
   }
 }
 
-fn plan_ceiling_7d(plan: &str, seat_limit: i32) -> i32 {
+fn plan_ceiling_7d(deployment: Deployment, plan: &str, seat_limit: i32) -> i32 {
+  // Cloud 按 plan 给死上限（免费档 10/周），self-host 直接按席位走，
+  // 否则 seat_limit 放到 1000 也会被周窗口卡在 10。
+  if deployment == Deployment::SelfHosted {
+    return seat_limit.max(1);
+  }
+
   let normalized = plan.to_ascii_lowercase();
   if normalized.contains("enterprise") || normalized.contains("team") && !normalized.contains("trial") {
     seat_limit.saturating_mul(2)
@@ -92,15 +110,26 @@ fn plan_ceiling_7d(plan: &str, seat_limit: i32) -> i32 {
 }
 
 fn base_invite_limits(
+  deployment: Deployment,
   now: DateTime<Utc>,
   actor: &ActorFacts,
   workspace: &WorkspaceFacts,
   quota: &QuotaFacts,
   activity: &InviteActivityFacts,
 ) -> (i32, i32, i32, i32) {
+  // 账号被禁用 / 未注册是真实账号状态，任何部署形态下都不放行。
   if actor.disabled || !actor.registered {
     return (0, 0, 0, 0);
   }
+
+  // self-host 只保留席位上界，跳过后面全部 Cloud anti-abuse 收紧
+  // （<24h 新账号一刀切归零、邮箱未验证降级、workspace 冷启动折半、
+  //   低接受率惩罚等）。
+  if deployment == Deployment::SelfHosted {
+    let ceiling = quota.seat_limit.clamp(1, SELFHOST_INVITE_BURST_CEILING);
+    return (ceiling, ceiling, ceiling, ceiling);
+  }
+
   let account_age = now - actor.created_at;
   let workspace_age = now - workspace.created_at;
   let mut single = 5;
@@ -171,7 +200,7 @@ fn base_invite_limits(
     per_week = per_week.min(20);
   }
 
-  let seat_7d = plan_ceiling_7d(&quota.plan, quota.seat_limit).min(quota.seat_limit.saturating_mul(2));
+  let seat_7d = plan_ceiling_7d(deployment, &quota.plan, quota.seat_limit).min(quota.seat_limit.saturating_mul(2));
   (single, per_hour, per_day, per_week.min(seat_7d))
 }
 
@@ -186,6 +215,7 @@ pub(super) fn evaluate_projection(quota: &QuotaFacts, now: DateTime<Utc>) -> Opt
 }
 
 pub(super) fn build_invite_scopes(
+  deployment: Deployment,
   input: &RuntimeWorkspaceInviteQuotaInput,
   actor: &ActorFacts,
   workspace: &WorkspaceFacts,
@@ -197,7 +227,7 @@ pub(super) fn build_invite_scopes(
   if input.target_count <= 0 {
     return Err(napi_error("target_count must be positive"));
   }
-  let (single, per_hour, per_day, per_week) = base_invite_limits(now, actor, workspace, quota, activity);
+  let (single, per_hour, per_day, per_week) = base_invite_limits(deployment, now, actor, workspace, quota, activity);
   if input.target_count > single {
     return Ok(vec![ScopeLimit {
       scope_key: format!("invite:single_request:{}", input.actor_user_id),
@@ -210,7 +240,7 @@ pub(super) fn build_invite_scopes(
 
   let actor_subject = subject_hash(&actor.email, config);
   let (quota_subject, seat_limit) = quota_subject(&input.workspace_id, quota);
-  let quota_subject_7d = plan_ceiling_7d(&quota.plan, seat_limit).min(seat_limit.saturating_mul(2));
+  let quota_subject_7d = plan_ceiling_7d(deployment, &quota.plan, seat_limit).min(seat_limit.saturating_mul(2));
   let mut scopes = vec![
     scope(
       format!("invite:user:{}", input.actor_user_id),
@@ -349,10 +379,17 @@ pub(super) fn build_invite_scopes(
 }
 
 pub(super) fn high_confidence_invite_abuse(
+  deployment: Deployment,
   input: &RuntimeWorkspaceInviteQuotaInput,
   actor: &ActorFacts,
   config: &InviteQuotaConfig,
 ) -> Option<InviteAbuseDecision> {
+  // quarantine / ban 是公共服务的滥用治理手段，self-host 不做这类处置，
+  // 也就不会往 runtime_invite_abuse_* 里写新的封禁主体。
+  if deployment == Deployment::SelfHosted {
+    return None;
+  }
+
   let high_risk_domain_counts: Vec<(String, i32)> = input
     .target_domains
     .iter()
@@ -481,6 +518,7 @@ mod tests {
       source: None,
     };
     let scopes = build_invite_scopes(
+      Deployment::Cloud,
       &input,
       &user(now - Duration::days(60)),
       &workspace(now - Duration::days(60)),
@@ -510,7 +548,7 @@ mod tests {
       ..quota("free", 3)
     };
     assert_eq!(quota_subject("w1", &facts), ("owner:owner-a".to_string(), 3));
-    assert_eq!(plan_ceiling_7d("free", 3).min(3 * 2), 6);
+    assert_eq!(plan_ceiling_7d(Deployment::Cloud, "free", 3).min(3 * 2), 6);
   }
 
   #[test]
@@ -534,6 +572,7 @@ mod tests {
     };
 
     let scopes = build_invite_scopes(
+      Deployment::Cloud,
       &input,
       &user(now - Duration::days(60)),
       &workspace(now - Duration::days(60)),
@@ -596,6 +635,7 @@ mod tests {
     };
 
     let workspace_decision = high_confidence_invite_abuse(
+      Deployment::Cloud,
       &input,
       &user(Utc.with_ymd_and_hms(2026, 7, 1, 0, 0, 0).single().unwrap()),
       &config,
@@ -607,6 +647,7 @@ mod tests {
     input.target_count = 12;
     input.target_domains[0].count = 12;
     let source_decision = high_confidence_invite_abuse(
+      Deployment::Cloud,
       &input,
       &user(Utc.with_ymd_and_hms(2026, 7, 1, 0, 0, 0).single().unwrap()),
       &config,
@@ -643,6 +684,7 @@ mod tests {
     };
 
     let decision = high_confidence_invite_abuse(
+      Deployment::Cloud,
       &input,
       &user(Utc.with_ymd_and_hms(2026, 7, 1, 0, 0, 0).single().unwrap()),
       &config,
@@ -650,5 +692,114 @@ mod tests {
     .unwrap();
     assert_eq!(decision.action, "quarantine_actor");
     assert_eq!(decision.subject_kind, "actor_email");
+  }
+
+  // --- self-host ------------------------------------------------------------
+
+  fn burst_input(target_count: i32, domain: &str) -> RuntimeWorkspaceInviteQuotaInput {
+    RuntimeWorkspaceInviteQuotaInput {
+      actor_user_id: "u1".to_string(),
+      workspace_id: "w1".to_string(),
+      request_id: None,
+      target_count,
+      target_domains: vec![RuntimeQuotaTargetDomainInput {
+        domain: domain.to_string(),
+        count: target_count,
+      }],
+      source: None,
+    }
+  }
+
+  #[test]
+  fn selfhost_lifts_cloud_invite_throttling_but_keeps_a_seat_ceiling() {
+    let now = Utc.with_ymd_and_hms(2026, 7, 6, 0, 0, 0).single().unwrap();
+    // qq.com 在 Cloud 侧属于高风险域名，且账号/workspace 都只有 1 小时。
+    let input = burst_input(20, "qq.com");
+    let actor = user(now - Duration::hours(1));
+    let workspace = workspace(now - Duration::hours(1));
+    let quota = quota("selfhost_free", 1000);
+
+    let scopes = build_invite_scopes(
+      Deployment::SelfHosted,
+      &input,
+      &actor,
+      &workspace,
+      &quota,
+      &InviteActivityFacts::default(),
+      &invite_config(),
+      now,
+    )
+    .unwrap();
+
+    // 周窗口不再被 plan_ceiling_7d 的免费档 10 卡住，而是走席位上界。
+    let week = scopes
+      .iter()
+      .find(|scope| scope.scope_key == "invite:user:u1" && scope.window_seconds == 604_800)
+      .unwrap();
+    assert_eq!(week.limit, SELFHOST_INVITE_BURST_CEILING);
+
+    // 同样的输入在 Cloud 下会因 <24h 新账号被一刀切归零。
+    let cloud = build_invite_scopes(
+      Deployment::Cloud,
+      &input,
+      &actor,
+      &workspace,
+      &quota,
+      &InviteActivityFacts::default(),
+      &invite_config(),
+      now,
+    )
+    .unwrap();
+    assert_eq!(cloud.len(), 1);
+    assert_eq!(cloud[0].limit, 0);
+  }
+
+  #[test]
+  fn selfhost_never_quarantines_invite_actors() {
+    let now = Utc.with_ymd_and_hms(2026, 7, 6, 0, 0, 0).single().unwrap();
+    let input = burst_input(30, "qq.com");
+
+    assert!(
+      high_confidence_invite_abuse(
+        Deployment::SelfHosted,
+        &input,
+        &user(now - Duration::days(60)),
+        &invite_config(),
+      )
+      .is_none()
+    );
+  }
+
+  #[test]
+  fn selfhost_still_rejects_disabled_or_unregistered_actors() {
+    let now = Utc.with_ymd_and_hms(2026, 7, 6, 0, 0, 0).single().unwrap();
+    let input = burst_input(1, "example.com");
+    let quota = quota("selfhost_free", 1000);
+
+    for actor in [
+      ActorFacts {
+        disabled: true,
+        ..user(now - Duration::days(60))
+      },
+      ActorFacts {
+        registered: false,
+        ..user(now - Duration::days(60))
+      },
+    ] {
+      let scopes = build_invite_scopes(
+        Deployment::SelfHosted,
+        &input,
+        &actor,
+        &workspace(now - Duration::days(60)),
+        &quota,
+        &InviteActivityFacts::default(),
+        &invite_config(),
+        now,
+      )
+      .unwrap();
+
+      assert_eq!(scopes.len(), 1);
+      assert_eq!(scopes[0].limit, 0);
+    }
   }
 }

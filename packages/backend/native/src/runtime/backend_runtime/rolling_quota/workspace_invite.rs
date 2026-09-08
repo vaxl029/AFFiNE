@@ -388,7 +388,7 @@ impl BackendRuntime {
         action_required: None,
       });
     }
-    if let Some(abuse_decision) = high_confidence_invite_abuse(&input, &actor, config) {
+    if let Some(abuse_decision) = high_confidence_invite_abuse(runtime_config.deployment, &input, &actor, config) {
       let reason = abuse_decision.reason;
       let scope_key = match abuse_decision.subject_kind {
         "workspace" => format!("invite:workspace_subject:{}", abuse_decision.subject_key),
@@ -412,7 +412,16 @@ impl BackendRuntime {
 
     let workspace = load_workspace(&pool, &input.workspace_id).await?;
     let activity = load_invite_activity(&pool, &input.actor_user_id, &input.workspace_id).await?;
-    let scopes = build_invite_scopes(&input, &actor, &workspace, &quota, &activity, config, now)?;
+    let scopes = build_invite_scopes(
+      runtime_config.deployment,
+      &input,
+      &actor,
+      &workspace,
+      &quota,
+      &activity,
+      config,
+      now,
+    )?;
     match reserve_scopes(&pool, "workspace_invite", input.request_id.as_deref(), scopes).await? {
       Ok(reservation) => Ok(RuntimeWorkspaceInviteQuotaDecision {
         allowed: true,
