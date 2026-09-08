@@ -16,6 +16,12 @@ services:
       - ./data/storage:/root/.affine/storage
       - ./config:/root/.affine/config
     environment:
+      # ---------------------------------------------------------------------
+      # Node 侧默认生产即 selfhosted，但 native runtime 缺省会落到 Cloud
+      # (native/src/runtime/config.rs::deployment_from_env)，两边语义必须一致，
+      # 否则 BYOK custom endpoint / managed provider routing 会走错分支。
+      # ---------------------------------------------------------------------
+      - DEPLOYMENT_TYPE=selfhosted
       - REDIS_SERVER_HOST=redis
       - DATABASE_URL=postgresql://affine@postgres:5432/affine
       - AFFINE_INDEXER_ENABLED=false
@@ -29,6 +35,9 @@ services:
       - ./config:/root/.affine/config
     command: ['sh', '-c', 'node ./scripts/self-host-predeploy.js']
     environment:
+      # migration 与 server 必须同构，否则 migration 期间的 entitlement
+      # 投影会按 Cloud 语义写入 effective_*_quota_states。
+      - DEPLOYMENT_TYPE=selfhosted
       - REDIS_SERVER_HOST=redis
       - DATABASE_URL=postgresql://affine@postgres:5432/affine
       - AFFINE_INDEXER_ENABLED=false
