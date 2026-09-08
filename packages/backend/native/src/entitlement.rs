@@ -442,14 +442,31 @@ fn plan_catalog(plan: &str, quantity: Option<i32>) -> PlanQuota {
         unlimited_copilot: false,
       }
     }
+    // -----------------------------------------------------------------------
+    // Self-host 资源额度（本 fork 定制）
+    // -----------------------------------------------------------------------
+    // 这里是 quota 的唯一真源：plan_catalog -> quota() -> resolveEntitlementV1
+    // -> QuotaStateService::reconcile* -> effective_*_quota_states。
+    // 改这一处即可，不需要 SQL Trigger 去覆盖 reconcile 结果。
+    //
+    // 语义上仍是 selfhost_free（不伪造付费 plan、不签 license）：
+    //   - copilot_action_limit = None 表示不受 managed action 配额约束，
+    //     AI 走 BYOK，与 Cloud Copilot 订阅额度无关；
+    //   - unlimited_copilot 保持 false，避免误开 managed AI entitlement；
+    //   - seat_quota 保持 None，不采用 Team 的 "基础容量 + 按席位递增" 算法，
+    //     总存储固定 1 TB。
+    //
+    // 注意：`QuotaService::userMemberLimit` 里有一份面向展示的 member limit，
+    // 与此处的 member_limit 必须同步。
+    // -----------------------------------------------------------------------
     "selfhost_free" => PlanQuota {
       name: "selfhost_free",
-      blob_limit: 100 * ONE_MB,
-      storage_quota: 100 * ONE_GB,
+      blob_limit: 500 * ONE_MB,
+      storage_quota: 1024 * ONE_GB,
       history_period: 30 * ONE_DAY_SECONDS,
-      member_limit: Some(10),
+      member_limit: Some(1000),
       seat_quota: None,
-      copilot_action_limit: Some(10),
+      copilot_action_limit: None,
       unlimited_copilot: false,
     },
     _ => PlanQuota {
@@ -562,7 +579,7 @@ Hc3w7v4FGmoA5MNzzhrkho1ckDYw2wrX6zBnehFzcivURv80HherE2GQjg==\n\
       ("lifetime_pro", None, 10, 1024 * ONE_GB, Some(10)),
       ("team", Some(5), 5, 200 * ONE_GB, None),
       ("selfhost_team", Some(20), 20, 500 * ONE_GB, None),
-      ("selfhost_free", None, 10, 100 * ONE_GB, Some(10)),
+      ("selfhost_free", None, 1000, 1024 * ONE_GB, None),
     ];
 
     for (plan, quantity, seat_limit, storage_quota, copilot_limit) in cases {
@@ -585,6 +602,28 @@ Hc3w7v4FGmoA5MNzzhrkho1ckDYw2wrX6zBnehFzcivURv80HherE2GQjg==\n\
       assert_eq!(resolved.quota.storage_quota, storage_quota, "{plan}");
       assert_eq!(resolved.quota.copilot_action_limit, copilot_limit, "{plan}");
     }
+  }
+
+  // 本 fork 的 self-host 资源额度：500MB / 1TB / 30 天 / 1000 席位 /
+  // 无 managed copilot 配额，且必须仍是 selfhost_free 语义。
+  #[test]
+  fn selfhost_free_uses_customized_resource_quota() {
+    let mut input = input(None, None);
+    input.deployment_type = "selfhosted".to_string();
+
+    let resolved = resolve_entitlement_v1(input).unwrap();
+
+    assert!(resolved.valid);
+    assert_eq!(resolved.plan, "selfhost_free");
+    assert_eq!(resolved.quota.blob_limit, 500 * ONE_MB);
+    assert_eq!(resolved.quota.storage_quota, 1024 * ONE_GB);
+    assert_eq!(resolved.quota.history_period, 30 * ONE_DAY_SECONDS);
+    assert_eq!(resolved.quota.seat_limit, Some(1000));
+    assert_eq!(resolved.quota.copilot_action_limit, None);
+    // 资源额度放宽不得连带打开 managed AI entitlement。
+    assert_eq!(resolved.flags.get("unlimitedCopilot"), Some(&false));
+    // 席位存储按 Team 的 "基础 + 按席位递增" 算法必须保持关闭。
+    assert_eq!(resolved.quota.seat_quota, None);
   }
 
   #[test]

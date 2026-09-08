@@ -217,10 +217,20 @@ export class QuotaService {
     };
   }
 
+  // effective_user_quota_states 没有 seat 列——席位约束落在 workspace 维度，
+  // 这里只能按 plan 推导出面向展示的成员上限。数值必须与 native
+  // `plan_catalog()` 的 member_limit 保持同步，否则 UI 显示的额度会与
+  // inviteMembers 实际校验的 workspace seat_limit 对不上。
   private userMemberLimit(plan: string) {
-    return plan === 'pro' || plan === 'lifetime_pro' || plan === 'selfhost_free'
-      ? 10
-      : 3;
+    switch (plan) {
+      case 'selfhost_free':
+        return 1000;
+      case 'pro':
+      case 'lifetime_pro':
+        return 10;
+      default:
+        return 3;
+    }
   }
 
   private planName(plan: string) {
