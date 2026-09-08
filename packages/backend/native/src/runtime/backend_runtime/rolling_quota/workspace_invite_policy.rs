@@ -16,12 +16,14 @@ use crate::llm::Deployment;
 // Self-host invite ceiling
 // ---------------------------------------------------------------------------
 // self-host 是私有可信部署，不需要 Cloud 面向陌生用户的账号年龄 / 邮箱验证 /
-// 接受率 / 高风险域名风控。但仍保留一个按席位推导的上界，用来兜住误操作
-// （例如脚本把整本通讯录一次性灌进来）。
+// 接受率 / 高风险域名风控，这一层退化成纯粹的席位约束。
 //
-// 512 与 GraphQL 层 `inviteMembers` 的 emails.length 上限对齐。
+// 单次请求上界取 512，与 GraphQL 层 `inviteMembers` 的 emails.length 校验
+// 对齐——native 不应该比入参校验更宽松，否则会出现 "配额说可以、接口直接
+// TooManyRequest" 的错位。时间窗口（时 / 日 / 周）则直接按席位走：席位给到
+// 1000 却限制一天只能邀 512 人是没有道理的。
 // ---------------------------------------------------------------------------
-const SELFHOST_INVITE_BURST_CEILING: i32 = 512;
+const SELFHOST_INVITE_REQUEST_CEILING: i32 = 512;
 
 #[derive(Clone, Debug)]
 pub(super) struct ActorFacts {
@@ -122,12 +124,13 @@ fn base_invite_limits(
     return (0, 0, 0, 0);
   }
 
-  // self-host 只保留席位上界，跳过后面全部 Cloud anti-abuse 收紧
+  // self-host 只保留席位约束，跳过后面全部 Cloud anti-abuse 收紧
   // （<24h 新账号一刀切归零、邮箱未验证降级、workspace 冷启动折半、
   //   低接受率惩罚等）。
   if deployment == Deployment::SelfHosted {
-    let ceiling = quota.seat_limit.clamp(1, SELFHOST_INVITE_BURST_CEILING);
-    return (ceiling, ceiling, ceiling, ceiling);
+    let seats = quota.seat_limit.max(1);
+    let single = seats.min(SELFHOST_INVITE_REQUEST_CEILING);
+    return (single, seats, seats, seats);
   }
 
   let account_age = now - actor.created_at;
@@ -285,6 +288,15 @@ pub(super) fn build_invite_scopes(
       input.target_count,
     ),
   ];
+
+  // 以下 domain / source cohort / ASN 三组 scope 全是 Cloud 的反滥用信号：
+  // 高风险邮箱域名（qq.com、163.com、outlook.com…）、注册来源聚类、出口 ASN。
+  // self-host 的成员恰恰就是这些域名的正常用户，继续套用只会误伤——例如
+  // target_domain_global 对高风险域名是 60 秒窗口 30 个，source_prefix_domain
+  // 更是 1 小时 5 个。私有部署只保留上面按席位推导的约束。
+  if deployment == Deployment::SelfHosted {
+    return Ok(scopes);
+  }
 
   for target in &input.target_domains {
     let domain = normalize_domain(&target.domain);
@@ -731,12 +743,26 @@ mod tests {
     )
     .unwrap();
 
-    // 周窗口不再被 plan_ceiling_7d 的免费档 10 卡住，而是走席位上界。
+    // 周窗口不再被 plan_ceiling_7d 的免费档 10 卡住，而是等于席位数。
     let week = scopes
       .iter()
       .find(|scope| scope.scope_key == "invite:user:u1" && scope.window_seconds == 604_800)
       .unwrap();
-    assert_eq!(week.limit, SELFHOST_INVITE_BURST_CEILING);
+    assert_eq!(week.limit, 1000);
+
+    // 日窗口同样按席位走，不应被单次请求上界压低。
+    let day = scopes
+      .iter()
+      .find(|scope| scope.scope_key == "invite:user:u1" && scope.window_seconds == 86_400)
+      .unwrap();
+    assert_eq!(day.limit, 1000);
+
+    // 高风险邮箱域名不再参与限流：self-host 不生成任何 domain 维度 scope。
+    assert!(
+      !scopes
+        .iter()
+        .any(|scope| scope.scope_key.contains("domain") || scope.scope_key.contains("source_"))
+    );
 
     // 同样的输入在 Cloud 下会因 <24h 新账号被一刀切归零。
     let cloud = build_invite_scopes(
