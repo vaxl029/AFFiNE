@@ -47,6 +47,18 @@ export function canUserExecuteLimitedActions(
   return Date.now() - user.createdAt.getTime() >= minimumAccountAgeMs;
 }
 
+// ---------------------------------------------------------------------------
+// New-account observation window
+// ---------------------------------------------------------------------------
+// Cloud 用账号年龄做新账号观察期，挡住 "注册即批量拉人 / 批量发分享链接"。
+// self-host 的成员本就是可信的，native rolling quota 那侧也已放行；这里
+// 必须跟着一起放行，否则会退化成 "native 允许、TS 仍拦"，表现为怎么调
+// auth.newAccountShareActionDelay 都不生效。
+// ---------------------------------------------------------------------------
+export function newAccountActionDelayMs(config: Config) {
+  return env.selfhosted ? 0 : config.auth.newAccountShareActionDelay * 1000;
+}
+
 function parseAsn(value: string | undefined) {
   if (!value) {
     return;

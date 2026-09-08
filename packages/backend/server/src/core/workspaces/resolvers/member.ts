@@ -53,6 +53,7 @@ import {
   canUserExecuteLimitedActions,
   getAbuseRequestSource,
   InviteQuotaAssertService,
+  newAccountActionDelayMs,
 } from '../abuse';
 import { WorkspaceService } from '../service';
 import {
@@ -138,7 +139,7 @@ export class WorkspaceMemberResolver {
     }
     // Member invites are owned by native quota; this guard stays for invite links until share/link actions migrate.
     const user = await this.models.user.get(userId);
-    const newAccountAgeMs = this.config.auth.newAccountShareActionDelay * 1000;
+    const newAccountAgeMs = newAccountActionDelayMs(this.config);
     if (!user || !canUserExecuteLimitedActions(user, newAccountAgeMs)) {
       this.logger.warn('Share action blocked for new account', {
         userId,

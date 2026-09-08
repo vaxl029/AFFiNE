@@ -47,7 +47,10 @@ import {
   PermissionService,
 } from '../../permission';
 import { PublicUserType, WorkspaceUserType } from '../../user';
-import { canUserExecuteLimitedActions } from '../abuse';
+import {
+  canUserExecuteLimitedActions,
+  newAccountActionDelayMs,
+} from '../abuse';
 import { DocGrantsService } from '../doc-grants';
 import { WorkspaceType } from '../types';
 import { TimeBucket, TimeWindow } from './analytics-types';
@@ -333,7 +336,7 @@ export class WorkspaceDocResolver {
       );
     }
     const user = await this.models.user.get(userId);
-    const newAccountAgeMs = this.config.auth.newAccountShareActionDelay * 1000;
+    const newAccountAgeMs = newAccountActionDelayMs(this.config);
     if (!user || !canUserExecuteLimitedActions(user, newAccountAgeMs)) {
       this.logger.warn('Share action blocked for new account', {
         userId,
