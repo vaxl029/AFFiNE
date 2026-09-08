@@ -19,10 +19,6 @@ permissions:
   contents: read
   packages: write
 
-env:
-  # 生产镜像走 stable 渠道，否则前端会带 canary 图标与 changelog 地址
-  BUILD_TYPE: stable
-
 jobs:
   # ---------------------------------------------------------------------------
   # native
@@ -73,6 +69,10 @@ jobs:
   frontend:
     name: Build web / admin / mobile
     runs-on: ubuntu-latest
+    # 生产镜像走 stable 渠道，否则前端带 canary 图标和 changelog 地址。
+    # 只作用于前端产物，server bundle 不需要（官方也只在前端 job 设）。
+    env:
+      BUILD_TYPE: stable
     steps:
       - uses: actions/checkout@v7
 
@@ -104,6 +104,67 @@ jobs:
           if-no-files-found: error
 
   # ---------------------------------------------------------------------------
+  # server
+  # ---------------------------------------------------------------------------
+  # 步骤顺序刻意与上游 build-images.yml 的 build-server job 保持一致
+  # （先 setup-node 再下载 native），这条路径是上游验证过的。
+  server:
+    name: Build server bundle
+    runs-on: ubuntu-latest
+    needs:
+      - native
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Version
+        uses: ./.github/actions/setup-version
+        with:
+          app-version: ${{ inputs.app-version }}
+
+      - name: Setup Node.js
+        uses: ./.github/actions/setup-node
+        with:
+          electron-install: false
+          extra-flags: workspaces focus @affine/server @types/affine__env
+
+      - name: Download server-native
+        uses: actions/download-artifact@v4
+        with:
+          name: server-native
+          path: ./packages/backend/native
+
+      - name: List server-native files
+        run: ls -alh ./packages/backend/native
+
+      - name: Build Server
+        run: yarn workspace @affine/server build
+
+      # bundle 空转时退出码仍是 0，不校验就会推出一个缺 dist/main.js 的
+      # 镜像，直到容器起不来才发现。
+      - name: Verify server bundle
+        run: |
+          echo '--- packages/backend/server/dist ---'
+          ls -la packages/backend/server/dist || true
+          if [ ! -f packages/backend/server/dist/main.js ]; then
+            echo '::error::dist/main.js 缺失，server bundle 没有产出'
+            exit 1
+          fi
+          size=$(stat -c%s packages/backend/server/dist/main.js)
+          echo "main.js size: ${size} bytes"
+          # 正常产物是 MB 级；只有几 KB 说明 src 被当成 external 了
+          if [ "$size" -lt 102400 ]; then
+            echo '::error::dist/main.js 过小，产物无效'
+            exit 1
+          fi
+
+      - name: Upload server dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-dist
+          path: ./packages/backend/server/dist
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
   # image
   # ---------------------------------------------------------------------------
   image:
@@ -112,6 +173,7 @@ jobs:
     needs:
       - native
       - frontend
+      - server
     steps:
       - uses: actions/checkout@v7
 
@@ -119,6 +181,12 @@ jobs:
         uses: ./.github/actions/setup-version
         with:
           app-version: ${{ inputs.app-version }}
+
+      - name: Download server dist
+        uses: actions/download-artifact@v4
+        with:
+          name: server-dist
+          path: ./packages/backend/server/dist
 
       - name: Download server-native
         uses: actions/download-artifact@v4
@@ -132,15 +200,11 @@ jobs:
           name: frontend-dist
           path: ./packages/frontend
 
-      # server bundle 需要 native 产物在位，所以放在下载之后
       - name: Setup Node.js
         uses: ./.github/actions/setup-node
         with:
           electron-install: false
           extra-flags: workspaces focus @affine/server @types/affine__env
-
-      - name: Build Server
-        run: yarn workspace @affine/server build
 
       # 换成生产依赖。只构建 amd64，不需要 arm 的可选依赖。
       - name: Install production dependencies
@@ -154,6 +218,28 @@ jobs:
 
       - name: Move node_modules into server package
         run: mv ./node_modules ./packages/backend/server
+
+      # Dockerfile 只是 COPY，产物缺失不会让 build 失败，只会做出一个
+      # 起不来的镜像。在推送前把三份产物都确认一遍。
+      - name: Verify docker build context
+        run: |
+          fail=0
+          for f in \
+            packages/backend/server/dist/main.js \
+            packages/backend/server/node_modules \
+            packages/backend/server/node_modules/@prisma/client \
+            packages/frontend/apps/web/dist/index.html \
+            packages/frontend/admin/dist/index.html \
+            packages/frontend/apps/mobile/dist/index.html
+          do
+            if [ -e "$f" ]; then
+              echo "ok   $f"
+            else
+              echo "MISS $f"
+              fail=1
+            fi
+          done
+          [ "$fail" = 0 ] || { echo '::error::docker build context 不完整'; exit 1; }
 
       # GHCR 的 namespace 必须是小写，owner 名大小写不确定，统一转一次
       - name: Resolve image name
