@@ -40,7 +40,7 @@ import type { GraphqlContext } from '../../../base/graphql';
 import { Models, type WorkspaceUserCompat } from '../../../models';
 import { CurrentUser, Public } from '../../auth';
 import { BackendRuntimeProvider } from '../../backend-runtime';
-import { containsUrlOrDomain } from '../../content-policy';
+import { blocksInviteByWorkspaceName } from '../../content-policy';
 import {
   PermissionAccess,
   WorkspacePolicyService,
@@ -156,7 +156,7 @@ export class WorkspaceMemberResolver {
 
   private async assertWorkspaceNameCanInvite(workspaceId: string) {
     const workspace = await this.workspaceService.getWorkspaceInfo(workspaceId);
-    if (containsUrlOrDomain(workspace.name)) {
+    if (blocksInviteByWorkspaceName(workspace.name)) {
       throw new ActionForbidden(
         'Workspace names containing links or domains cannot be used to invite members.'
       );

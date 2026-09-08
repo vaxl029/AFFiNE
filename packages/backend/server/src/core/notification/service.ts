@@ -16,7 +16,7 @@ import {
   Workspace,
 } from '../../models';
 import { BackendRuntimeProvider } from '../backend-runtime';
-import { containsUrlOrDomain } from '../content-policy';
+import { blocksInviteByWorkspaceName } from '../content-policy';
 import { DocReader } from '../doc';
 import { Mailer } from '../mail';
 import type { SendMailCommand } from '../mail/types';
@@ -242,7 +242,7 @@ export class NotificationService {
     const workspace = await this.docReader.getWorkspaceContent(
       input.body.workspaceId
     );
-    if (containsUrlOrDomain(workspace?.name)) {
+    if (blocksInviteByWorkspaceName(workspace?.name)) {
       this.logger.warn(
         `Skip invitation email for workspace ${input.body.workspaceId}, reason=workspace name contains url or domain`
       );

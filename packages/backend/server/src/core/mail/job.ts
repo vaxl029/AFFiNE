@@ -8,7 +8,7 @@ import { Config, metrics, OnEvent } from '../../base';
 import { type MailName, Renderers } from '../../mails';
 import { UserProps, WorkspaceProps } from '../../mails/components';
 import { MailDeliveryRow, Models } from '../../models';
-import { containsUrlOrDomain } from '../content-policy';
+import { blocksInviteByWorkspaceName } from '../content-policy';
 import { DocReader } from '../doc/reader';
 import { WorkspaceBlobStorage } from '../storage';
 import { MailSender, SendOptions } from './sender';
@@ -209,7 +209,7 @@ export class MailJob {
 
           if (
             payload.name === 'MemberInvitation' &&
-            containsUrlOrDomain(workspaceProps.name)
+            blocksInviteByWorkspaceName(workspaceProps.name)
           ) {
             this.logger.warn(
               `Skip mail [${payload.name}] to [${payload.to}], reason=workspace name contains url or domain`
@@ -246,7 +246,7 @@ export class MailJob {
     if (
       payload.name === 'MemberInvitation' &&
       'workspace' in renderedProps &&
-      containsUrlOrDomain(
+      blocksInviteByWorkspaceName(
         (renderedProps.workspace as WorkspaceProps | undefined)?.name
       )
     ) {
