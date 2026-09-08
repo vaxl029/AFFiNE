@@ -580,6 +580,9 @@ export function createNodeTargetConfig(
         data.request &&
         // import ... from 'module'
         /^[a-zA-Z@]/.test(data.request) &&
+        // Windows 的绝对路径以盘符字母开头（D:\...），会被上面的正则当成
+        // 裸模块名，连 entry 自己都被判成 external，产物只剩一行 import。
+        !path.isAbsolute(data.request) &&
         !options.bundleAllDependencies &&
         // not workspace deps
         !pkg.deps.some(dep => data.request!.startsWith(dep.name))

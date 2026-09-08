@@ -133,14 +133,52 @@ jobs:
           name: server-native
           path: ./packages/backend/native
 
-      - name: List server-native files
-        run: ls -alh ./packages/backend/native
+      # packages/backend/native/index.js 里三个架构分支是静态 require，
+      # rspack 会全部解析，任何一个文件缺失就是 Module not found，
+      # 整个 bundle 失败、无产物。上游构建三架构所以都在；我们只编 amd64，
+      # 用 x64 产物占位另外两个（以及 try 分支里的 server-native.node）
+      # 让解析通过。运行时按 process.arch 只会命中 x64，
+      # 且 docker-clean.mjs 会在镜像里把非目标架构删掉。
+      - name: Stub binaries for the other architectures
+        run: |
+          cd packages/backend/native
+          cp server-native.x64.node server-native.node
+          cp server-native.x64.node server-native.arm64.node
+          cp server-native.x64.node server-native.armv7.node
+          ls -alh
 
-      # 不用 `yarn workspace @affine/server build`：它经由
-      # tools/cli/bin/cli.js 再 spawn 一层，那层历史上会丢弃子进程退出码。
-      # 这里直接走根脚本 affine -> r affine.ts，少一层转发。
+      # 到 rspack 有三条转发链，长短不一：
+      #   a) yarn workspace @affine/server build
+      #        -> .bin/affine (cli.js) -> spawn yarn r affine.ts -> runner.js
+      #   b) yarn affine bundle -p @affine/server
+      #        -> 根脚本 r affine.ts -> runner.js
+      #   c) node tools/cli/bin/runner.js affine.ts ...
+      #        -> runner.js（无任何转发）
+      # 依次尝试，谁先产出 dist/main.js 就用谁；全失败才报错，
+      # 日志里会留下每一条的完整输出便于定位。
       - name: Build Server
-        run: yarn affine bundle -p @affine/server
+        run: |
+          built() { [ -f packages/backend/server/dist/main.js ]; }
+
+          echo '::group::attempt 1 - yarn affine bundle'
+          yarn affine bundle -p @affine/server || echo "attempt 1 exited $?"
+          echo '::endgroup::'
+          if built; then echo '=> built via `yarn affine bundle`'; exit 0; fi
+
+          echo '::warning::attempt 1 未产出，改用 runner 直调'
+          echo '::group::attempt 2 - runner.js'
+          node tools/cli/bin/runner.js affine.ts bundle -p @affine/server || echo "attempt 2 exited $?"
+          echo '::endgroup::'
+          if built; then echo '=> built via runner.js'; exit 0; fi
+
+          echo '::warning::attempt 2 未产出，回退到 yarn workspace build'
+          echo '::group::attempt 3 - yarn workspace build'
+          yarn workspace @affine/server build || echo "attempt 3 exited $?"
+          echo '::endgroup::'
+          if built; then echo '=> built via `yarn workspace build`'; exit 0; fi
+
+          echo '::error::三种方式均未产出 dist/main.js'
+          exit 1
 
       # bundle 空转时退出码仍是 0，不校验就会推出一个缺 dist/main.js 的
       # 镜像，直到容器起不来才发现。
@@ -159,6 +197,14 @@ jobs:
             echo '::error::dist/main.js 过小，产物无效'
             exit 1
           fi
+
+      # rspack 会把四个 .node 都作为 asset 复制进 dist，占位那三份是白搭
+      # 的 135MB×3，artifact 上传下载会慢很多。运行时只用 x64。
+      - name: Drop stub binaries from dist
+        run: |
+          cd packages/backend/server/dist
+          rm -f server-native.node server-native.arm64.node server-native.armv7.node
+          ls -alh
 
       - name: Upload server dist
         uses: actions/upload-artifact@v4
