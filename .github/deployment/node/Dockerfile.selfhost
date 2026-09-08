@@ -1,0 +1,48 @@
+# syntax=docker/dockerfile:1.7
+#
+# Self-host 专用镜像。
+#
+# 与上游 ./Dockerfile 的唯一区别是默认声明 DEPLOYMENT_TYPE=selfhosted：
+# Node 侧 env.ts 在生产环境本就默认 selfhosted，但 native runtime 的
+# deployment_from_env() 在变量缺失时会落到 Cloud，导致 BYOK custom endpoint
+# 被判为 unavailable、managed provider routing 走错分支。镜像内置一层默认值，
+# 即使部署时的 compose 漏配也不会出现两侧语义不一致。
+#
+# 单独成文件而不是改上游 Dockerfile，是为了让上游更新能干净地 cherry-pick。
+
+FROM node:22-bookworm-slim AS assets
+WORKDIR /app
+
+COPY ./packages/backend/server /app
+COPY ./packages/frontend/apps/web/dist /app/static
+COPY ./packages/frontend/admin/dist /app/static/admin
+COPY ./packages/frontend/apps/mobile/dist /app/static/mobile
+
+# Keep server sourcemap for stacktraces, but don't ship frontend/node_modules sourcemaps.
+ARG TARGETARCH
+ARG TARGETVARIANT
+# Needed for Prisma engine resolution (and potential engine download during cleanup).
+RUN apt-get update && \
+  apt-get install -y --no-install-recommends openssl ca-certificates && \
+  rm -rf /var/lib/apt/lists/*
+
+RUN AFFINE_DOCKER_CLEAN=1 TARGETARCH="${TARGETARCH}" TARGETVARIANT="${TARGETVARIANT}" node ./scripts/docker-clean.mjs
+
+FROM node:22-bookworm-slim
+WORKDIR /app
+
+COPY --from=assets /app /app
+
+RUN apt-get update && \
+  apt-get install -y --no-install-recommends openssl libjemalloc2 && \
+  rm -rf /var/lib/apt/lists/*
+
+# Enable jemalloc by preloading the library
+ENV LD_PRELOAD=libjemalloc.so.2
+
+# 自托管部署的默认值，compose 里可以再显式覆盖
+ENV DEPLOYMENT_TYPE=selfhosted
+
+EXPOSE 3010
+
+CMD ["node", "./dist/main.js"]
