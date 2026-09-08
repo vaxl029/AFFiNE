@@ -438,7 +438,7 @@ export function useAFFiNEI18N(): {
       */
     Select(): string;
     /**
-      * `Sign in to AFFiNE`
+      * `Sign in to Log.cx`
       */
     ["Sign in"](): string;
     /**
@@ -446,7 +446,7 @@ export function useAFFiNEI18N(): {
       */
     ["Sign in and Enable"](): string;
     /**
-      * `Sign out of AFFiNE`
+      * `Sign out of Log.cx`
       */
     ["Sign out"](): string;
     /**
@@ -1520,9 +1520,13 @@ export function useAFFiNEI18N(): {
       */
     ["com.affine.auth.sign.email.placeholder"](): string;
     /**
-      * `Sign in to AFFiNE`
+      * `Sign in to Log.cx`
       */
     ["com.affine.auth.sign.in"](): string;
+    /**
+      * `Sign in`
+      */
+    ["com.affine.auth.sign.in.button"](): string;
     /**
       * `Confirm your email`
       */

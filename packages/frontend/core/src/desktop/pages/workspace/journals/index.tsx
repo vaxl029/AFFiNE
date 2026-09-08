@@ -120,7 +120,7 @@ export const JournalsPageWithConfirmation = () => {
 
   return (
     <>
-      <ViewTitle title="" />
+      <ViewTitle title={t['com.affine.journal.app-sidebar-title']()} />
       <ViewIcon icon="journal" />
       <ViewHeader>
         <div className={styles.header}>
