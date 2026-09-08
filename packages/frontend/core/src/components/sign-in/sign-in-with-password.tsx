@@ -2,7 +2,6 @@ import { notify } from '@affine/component';
 import {
   AuthContainer,
   AuthContent,
-  AuthFooter,
   AuthHeader,
   AuthInput,
 } from '@affine/component/auth-components';
@@ -24,7 +23,6 @@ import type { Dispatch, SetStateAction } from 'react';
 import { useCallback, useEffect, useState } from 'react';
 
 import type { SignInState } from '.';
-import { Back } from './back';
 import { Captcha } from './captcha';
 import * as styles from './style.css';
 
@@ -183,7 +181,7 @@ export const SignInWithPasswordStep = ({
             style={{ width: '100%' }}
             disabled={isLoading || (!verifyToken && needCaptcha)}
           >
-            {t['com.affine.auth.sign.in']()}
+            {t['com.affine.auth.sign.in.button']()}
           </Button>
         </form>
         {!isSelfhosted && (
@@ -198,9 +196,6 @@ export const SignInWithPasswordStep = ({
           </div>
         )}
       </AuthContent>
-      <AuthFooter>
-        <Back changeState={changeState} />
-      </AuthFooter>
     </AuthContainer>
   );
 };

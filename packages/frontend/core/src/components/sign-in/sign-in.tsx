@@ -2,7 +2,6 @@ import { Button, notify } from '@affine/component';
 import {
   AuthContainer,
   AuthContent,
-  AuthFooter,
   AuthHeader,
   AuthInput,
 } from '@affine/component/auth-components';
@@ -33,7 +32,6 @@ import {
 
 import { useSelfhostLoginVersionGuard } from '../hooks/affine/use-selfhost-login-version-guard';
 import type { SignInState } from '.';
-import { Back } from './back';
 import * as style from './style.css';
 
 const emailRegex =
@@ -244,11 +242,6 @@ export const SignInStep = ({
           </>
         )}
       </AuthContent>
-      {isSelfhosted && (
-        <AuthFooter>
-          <Back changeState={changeState} />
-        </AuthFooter>
-      )}
     </AuthContainer>
   );
 };

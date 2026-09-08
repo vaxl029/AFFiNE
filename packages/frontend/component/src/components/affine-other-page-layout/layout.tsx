@@ -1,26 +1,15 @@
-import { Button } from '@affine/component/ui/button';
-import { useI18n } from '@affine/i18n';
-import { Logo1Icon } from '@blocksuite/icons/rc';
 import { useTheme } from 'next-themes';
-import { type ReactNode, useCallback } from 'react';
+import type { ReactNode } from 'react';
 
 import dotBgDark from './assets/dot-bg.dark.png';
 import dotBgLight from './assets/dot-bg.light.png';
-import { DesktopNavbar } from './desktop-navbar';
 import * as styles from './index.css';
-import { MobileNavbar } from './mobile-navbar';
 
 export const AffineOtherPageLayout = ({
   children,
 }: {
   children: ReactNode;
 }) => {
-  const t = useI18n();
-
-  const openDownloadLink = useCallback(() => {
-    open(BUILD_CONFIG.downloadUrl, '_blank');
-  }, []);
-
   const { resolvedTheme } = useTheme();
   const backgroundImage =
     resolvedTheme === 'dark' && dotBgDark ? dotBgDark : dotBgLight;
@@ -30,24 +19,10 @@ export const AffineOtherPageLayout = ({
       className={styles.root}
       style={{ backgroundImage: `url(${backgroundImage})` }}
     >
-      {BUILD_CONFIG.isElectron ? (
-        <div className={styles.draggableHeader} />
-      ) : (
-        <div className={styles.topNav}>
-          <a href="/" rel="noreferrer" className={styles.affineLogo}>
-            <Logo1Icon width={24} height={24} />
-          </a>
-
-          <DesktopNavbar />
-          <Button
-            onClick={openDownloadLink}
-            className={styles.hideInSmallScreen}
-          >
-            {t['com.affine.auth.open.affine.download-app']()}
-          </Button>
-          <MobileNavbar />
-        </div>
-      )}
+      {/* 顶栏原本是 AFFiNE logo + 官网/Blog/Contact us + 下载 App，
+          对自托管部署全是无意义的外链，web 端不再渲染。
+          Electron 下保留可拖拽区域，否则窗口没法拖动。 */}
+      {BUILD_CONFIG.isElectron && <div className={styles.draggableHeader} />}
 
       {children}
     </div>

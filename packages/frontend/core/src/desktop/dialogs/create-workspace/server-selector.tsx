@@ -1,5 +1,10 @@
 import { Menu, MenuItem } from '@affine/component';
-import { type Server, ServersService } from '@affine/core/modules/cloud';
+import {
+  DefaultServerService,
+  type Server,
+  ServersService,
+} from '@affine/core/modules/cloud';
+import { ServerFeature } from '@affine/graphql';
 import { useI18n } from '@affine/i18n';
 import {
   ArrowDownSmallIcon,
@@ -41,6 +46,18 @@ export const ServerSelector = ({
   const serversService = useService(ServersService);
   const servers = useLiveData(serversService.servers$);
 
+  // 与首页守卫、工作区菜单入口用同一个开关：服务端关掉 LocalWorkspace 后，
+  // 这里也不该再提供"本地储存"，否则用户能绕过限制建出不会同步的工作区。
+  // 桌面端（BUILD_CONFIG.isNative）本地工作区是正常能力，保持可选。
+  const defaultServerService = useService(DefaultServerService);
+  const enableLocalWorkspace = useLiveData(
+    defaultServerService.server.config$.selector(
+      c =>
+        c.features.includes(ServerFeature.LocalWorkspace) ||
+        BUILD_CONFIG.isNative
+    )
+  );
+
   const selectedServer = useMemo(() => {
     return servers.find(s => s.id === selectedId);
   }, [selectedId, servers]);
@@ -67,10 +84,12 @@ export const ServerSelector = ({
       }}
       items={
         <ul className={styles.list} data-testid="server-selector-list">
-          <LocalSelectorItem
-            onSelect={onChange}
-            active={selectedId === 'local'}
-          />
+          {enableLocalWorkspace && (
+            <LocalSelectorItem
+              onSelect={onChange}
+              active={selectedId === 'local'}
+            />
+          )}
           {servers.map(server => (
             <ServerSelectorItem
               key={server.id}
