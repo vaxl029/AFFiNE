@@ -136,8 +136,11 @@ jobs:
       - name: List server-native files
         run: ls -alh ./packages/backend/native
 
+      # 不用 `yarn workspace @affine/server build`：它经由
+      # tools/cli/bin/cli.js 再 spawn 一层，那层历史上会丢弃子进程退出码。
+      # 这里直接走根脚本 affine -> r affine.ts，少一层转发。
       - name: Build Server
-        run: yarn workspace @affine/server build
+        run: yarn affine bundle -p @affine/server
 
       # bundle 空转时退出码仍是 0，不校验就会推出一个缺 dist/main.js 的
       # 镜像，直到容器起不来才发现。
