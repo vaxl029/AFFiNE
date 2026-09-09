@@ -14,7 +14,7 @@
       content="black-translucent"
     />
 
-    <title>Log.cx</title>
+    <title>地球OL日志</title>
     <meta name="theme-color" content="#fafafa" />
     <%= PRECONNECT %>
     <link rel="manifest" href="/manifest.json" />
@@ -23,23 +23,19 @@
     <link rel="shortcut icon" href="/favicon.ico?v=2" />
     <meta name="emotion-insertion-point" content="" />
     <meta property="description" content="<%= DESCRIPTION %>" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content="https://app.affine.pro/" />
-    <meta
-      name="twitter:title"
-      content="AFFiNE: There can be more than Notion and Miro."
-    />
+    <!-- ─── 社交卡片 ─────────────────────────────────────────────────────
+         上游默认指向 affine.pro 的文案与图床，自建实例分享出去会显示
+         官方品牌，这里全部改为本站信息；站点图标复用 apple-touch-icon，
+         避免额外维护一张 og 图。 -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="地球OL日志" />
     <meta name="twitter:description" content="<%= DESCRIPTION %>" />
-    <meta name="twitter:site" content="@AffineOfficial" />
-    <meta name="twitter:image" content="https://affine.pro/og.jpeg" />
-    <meta
-      property="og:title"
-      content="AFFiNE: There can be more than Notion and Miro."
-    />
+    <meta name="twitter:image" content="/apple-touch-icon.png" />
+    <meta property="og:site_name" content="地球OL日志" />
+    <meta property="og:title" content="地球OL日志" />
     <meta property="og:type" content="website" />
     <meta property="og:description" content="<%= DESCRIPTION %>" />
-    <meta property="og:url" content="https://app.affine.pro/" />
-    <meta property="og:image" content="https://affine.pro/og.jpeg" />
+    <meta property="og:image" content="/apple-touch-icon.png" />
   </head>
 
   <body>

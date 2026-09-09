@@ -7,11 +7,7 @@ import {
 } from '@affine/component/auth-components';
 import { OAuth } from '@affine/core/components/affine/auth/oauth';
 import { useAsyncCallback } from '@affine/core/components/hooks/affine-async-hooks';
-import {
-  AuthService,
-  getSelfHostedServerName,
-  ServerService,
-} from '@affine/core/modules/cloud';
+import { AuthService, ServerService } from '@affine/core/modules/cloud';
 import type { AuthSessionStatus } from '@affine/core/modules/cloud/entities/session';
 import { ServerDeploymentType } from '@affine/graphql';
 import { Trans, useI18n } from '@affine/i18n';
@@ -54,18 +50,12 @@ export const SignInStep = ({
 }) => {
   const t = useI18n();
   const serverService = useService(ServerService);
-  const serverName = useLiveData(
-    serverService.server.config$.selector(c => c.serverName)
-  );
   const versionError = useSelfhostLoginVersionGuard(serverService.server);
   const isSelfhosted = useLiveData(
     serverService.server.config$.selector(
       c => c.type === ServerDeploymentType.Selfhosted
     )
   );
-  const signInServerName = isSelfhosted
-    ? getSelfHostedServerName(serverName)
-    : serverName;
   const authService = useService(AuthService);
   const [isMutating, setIsMutating] = useState(false);
 
@@ -142,10 +132,8 @@ export const SignInStep = ({
   if (versionError && isSelfhosted) {
     return (
       <AuthContainer>
-        <AuthHeader
-          title={t['com.affine.auth.sign.in']()}
-          subTitle={signInServerName}
-        />
+        {/* 副标题原本重复展示 serverName，与标题内容一致，这里不再渲染 */}
+        <AuthHeader title={t['com.affine.auth.sign.in']()} />
         <AuthContent>
           <div>{versionError}</div>
         </AuthContent>
@@ -155,10 +143,7 @@ export const SignInStep = ({
 
   return (
     <AuthContainer>
-      <AuthHeader
-        title={t['com.affine.auth.sign.in']()}
-        subTitle={signInServerName}
-      />
+      <AuthHeader title={t['com.affine.auth.sign.in']()} />
 
       <AuthContent>
         <OAuth redirectUrl={state.redirectUrl} />

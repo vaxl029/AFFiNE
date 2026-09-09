@@ -38,14 +38,8 @@ export const RequestToJoinPage = ({
             <span className={styles.inviteName}>{inviteInfo?.user.name}</span>
           </div>
           <div>{t['invited you to join']()}</div>
+          {/* 工作区头像是空 data URI 时会渲染成裂图，只保留名称 */}
           <div className={styles.userWrapper}>
-            <Avatar
-              url={`data:image/png;base64,${inviteInfo?.workspace.avatar}`}
-              name={inviteInfo?.workspace.name}
-              size={20}
-              style={{ marginLeft: 4 }}
-              colorfulFallback
-            />
             <span className={styles.inviteName}>
               {inviteInfo?.workspace.name}
             </span>

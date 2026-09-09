@@ -3,7 +3,6 @@ import { UserFriendlyError } from '@affine/error';
 import { ErrorNames, type GetInviteInfoQuery } from '@affine/graphql';
 import { Trans, useI18n } from '@affine/i18n';
 
-import { Avatar } from '../../ui/avatar';
 import * as styles from './styles.css';
 
 export const JoinFailedPage = ({
@@ -24,16 +23,9 @@ export const JoinFailedPage = ({
             <Trans
               i18nKey={'com.affine.fail-to-join-workspace.description-1'}
               components={{
-                1: (
-                  <div className={styles.avatarWrapper}>
-                    <Avatar
-                      url={`data:image/png;base64,${inviteInfo?.workspace.avatar}`}
-                      name={inviteInfo?.workspace.name}
-                      size={20}
-                      colorfulFallback
-                    />
-                  </div>
-                ),
+                // 工作区头像是空 data URI 时会渲染成裂图，这里留空占位以保持
+                // i18n 的插槽结构
+                1: <div className={styles.avatarWrapper} />,
                 2: <span className={styles.inviteName} />,
               }}
               values={{

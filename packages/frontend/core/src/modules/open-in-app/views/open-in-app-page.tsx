@@ -1,8 +1,7 @@
-import { Button } from '@affine/component/ui/button';
 import { WorkspaceDialogService } from '@affine/core/modules/dialogs';
 import { appIconMap, appNames } from '@affine/core/utils/channel';
 import { Trans, useI18n } from '@affine/i18n';
-import { LocalWorkspaceIcon, Logo1Icon } from '@blocksuite/icons/rc';
+import { LocalWorkspaceIcon } from '@blocksuite/icons/rc';
 import { useServiceOptional } from '@toeverything/infra';
 import type { MouseEvent } from 'react';
 import { useCallback } from 'react';
@@ -18,8 +17,6 @@ interface OpenAppProps {
   mode?: 'auth' | 'open-doc'; // default to 'auth'
 }
 const channel = BUILD_CONFIG.appBuildType;
-const url =
-  'https://affine.pro/download' + (channel !== 'stable' ? '/beta-canary' : '');
 
 export const OpenInAppPage = ({
   urlToOpen,
@@ -30,10 +27,6 @@ export const OpenInAppPage = ({
   urlToOpen ??= getOpenUrlInDesktopAppLink(window.location.href, true);
   const workspaceDialogService = useServiceOptional(WorkspaceDialogService);
   const t = useI18n();
-
-  const openDownloadLink = useCallback(() => {
-    open(url, '_blank');
-  }, []);
 
   const appIcon = appIconMap[channel];
   const appName = appNames[channel];
@@ -59,42 +52,9 @@ export const OpenInAppPage = ({
 
   return (
     <div className={styles.root}>
-      <div className={styles.topNav}>
-        <a href="/" rel="noreferrer" className={styles.affineLogo}>
-          <Logo1Icon width={24} height={24} />
-        </a>
-
-        <div className={styles.topNavLinks}>
-          <a
-            href="https://affine.pro"
-            target="_blank"
-            rel="noreferrer"
-            className={styles.topNavLink}
-          >
-            Official Website
-          </a>
-          <a
-            href="https://affine.pro/blog"
-            target="_blank"
-            rel="noreferrer"
-            className={styles.topNavLink}
-          >
-            Blog
-          </a>
-          <a
-            href="https://affine.pro/about-us"
-            target="_blank"
-            rel="noreferrer"
-            className={styles.topNavLink}
-          >
-            Contact us
-          </a>
-        </div>
-
-        <Button onClick={openDownloadLink}>
-          {t['com.affine.auth.open.affine.download-app']()}
-        </Button>
-      </div>
+      {/* 这个页面自带一份顶栏（AFFiNE logo + 官网/Blog/Contact us + 下载
+          应用），与 affine-other-page-layout 里那份是两套独立实现。对自托管
+          部署来说同样是无意义的外链，一并不再渲染。 */}
 
       <div className={styles.centerContent}>
         <img src={appIcon} alt={appName} width={120} height={120} />

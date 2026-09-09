@@ -61,7 +61,8 @@ export const getPublicPath = (BUILD_CONFIG: BUILD_CONFIG_TYPE) => {
   }
 };
 
-const DESCRIPTION = `There can be more than Notion and Miro. AFFiNE is a next-gen knowledge base that brings planning, sorting and creating all together.`;
+// 站点描述：注入 <meta description> 与社交卡片，替换上游的 AFFiNE 官方文案
+const DESCRIPTION = `文档、白板与数据库合一的个人知识库。`;
 
 const gitShortHash = once(() => {
   const { GITHUB_SHA } = process.env;
