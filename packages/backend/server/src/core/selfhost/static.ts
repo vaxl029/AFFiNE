@@ -9,6 +9,40 @@ import isMobile from 'is-mobile';
 import { Config } from '../../base';
 import { SetupMiddleware } from './setup';
 
+// ---------------------------------------------------------------------------
+// Static asset caching
+// ---------------------------------------------------------------------------
+// 上游给 serveStatic 传了 immutable 却没给 maxAge，而 express 的 maxAge 默认
+// 是 0，两者必须成对出现才有意义——结果响应头是 `public, max-age=0`，每次
+// 刷新都要把几十个 chunk 挨个回源验证一遍。登录页就要拉 20MB 以上的 JS
+// （shiki、blocksuite 都在里面），这一轮往返的代价很直观。
+//
+// 构建产物的文件名里带内容 hash（styles.1056fe91.css、index.fd5a6b1d.js），
+// 内容一变文件名就变，所以可以放心长缓存。HTML 与 manifest 必须保持不缓存，
+// 否则发版后客户端拿不到新的入口。
+// ---------------------------------------------------------------------------
+const HASHED_ASSET =
+  /\.[0-9a-f]{8,}\.(js|css|woff2?|ttf|png|jpe?g|gif|svg|ico|webp|wasm|map)$/;
+// 没有 hash 的静态资源：PWA 的 screenshot（近 1.3MB）、favicon、应用图标等。
+// 内容极少变动，但文件名固定，所以只能给一个有限期限而不是 immutable。
+const STATIC_ASSET = /\.(woff2?|ttf|png|jpe?g|gif|svg|ico|webp)$/;
+const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
+const ONE_DAY_SECONDS = 60 * 60 * 24;
+
+function setAssetCacheHeaders(
+  res: { setHeader: (k: string, v: string) => void },
+  filePath: string
+) {
+  if (HASHED_ASSET.test(filePath)) {
+    res.setHeader(
+      'Cache-Control',
+      `public, max-age=${ONE_YEAR_SECONDS}, immutable`
+    );
+  } else if (STATIC_ASSET.test(filePath)) {
+    res.setHeader('Cache-Control', `public, max-age=${ONE_DAY_SECONDS}`);
+  }
+}
+
 @Injectable()
 export class StaticFilesResolver implements OnModuleInit {
   constructor(
@@ -57,6 +91,7 @@ export class StaticFilesResolver implements OnModuleInit {
         redirect: false,
         index: false,
         fallthrough: true,
+        setHeaders: setAssetCacheHeaders,
       })
     );
 
@@ -84,6 +119,7 @@ export class StaticFilesResolver implements OnModuleInit {
         redirect: false,
         index: false,
         fallthrough: true,
+        setHeaders: setAssetCacheHeaders,
       })
     );
     // END REGION
@@ -101,8 +137,8 @@ export class StaticFilesResolver implements OnModuleInit {
         redirect: false,
         index: false,
         fallthrough: true,
-        immutable: true,
         dotfiles: 'ignore',
+        setHeaders: setAssetCacheHeaders,
       })
     );
 
