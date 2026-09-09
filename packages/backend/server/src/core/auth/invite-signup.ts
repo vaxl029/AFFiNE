@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { Cache, isValidCacheTtl } from '../../base';
 
 // ---------------------------------------------------------------------------
-// Invite-link signup quota
+// Invite-link signup
 // ---------------------------------------------------------------------------
 // 上游把"邀请新人"完全押在邮箱邀请上：邮箱邀请会预建 registered=false 的
 // 用户记录，所以不受 auth.allowSignup 影响；而邀请链接不建用户，要求对方
@@ -11,22 +11,19 @@ import { Cache, isValidCacheTtl } from '../../base';
 // AuthenticationRequired）。于是关掉公开注册后，UI 仍允许生成邀请链接，
 // 对方点进去却只会撞上 SignUpForbidden——链接等于废的。
 //
-// 这里补上缺失的那条路：持有有效邀请链接的人可以注册。但链接是可转发的，
-// 只校验"未过期"等于开了一个开放注册入口，所以额外约束注册次数：
+// 这里补上缺失的那条路：持有有效邀请链接的人可以注册，且**一条链接只能
+// 注册一个账号**。注册创建的是实例级账号，不是工作区内的席位，所以它的
+// 授权范围必须比"能加入多少人"小得多；界面上也没有让人填数量的地方，
+// 那就没有理由凭空放大成多个。
 //
-//   1. 链接必须仍在 cache 中（未过期、未被 revoke）；
-//   2. 每条链接有注册名额，生成链接时按当时的剩余席位快照写入；
-//   3. 每次放行消耗一个名额，用满即止，计数与链接同生命周期。
-//
-// 注册成功不等于入群：通过链接加入仍是 UnderReview，要管理员批准，
-// 真正的席位约束也还在 accept 那一步。这里挡的是"拿一条链接批量注册账号"。
+// 一次性由 increaseWithTtl 这个原子自增保证：只有返回 1 的那次是首次，
+// 并发下也只有一个请求能拿到。计数与链接同生命周期，链接被 revoke 或
+// 过期后计数自然消失。
 // ---------------------------------------------------------------------------
 
 export type InviteLinkPayload = {
   workspaceId: string;
   inviterUserId: string;
-  /** 剩余可用于注册的名额，缺省视为 0（旧链接不放行注册） */
-  signupQuota?: number;
 };
 
 export const inviteLinkCacheKey = (inviteId: string) =>
@@ -40,12 +37,12 @@ export class InviteLinkSignupService {
   constructor(private readonly cache: Cache) {}
 
   /**
-   * 消费一个注册名额。返回 true 表示这次注册可以豁免 allowSignup。
+   * 认领这条邀请链接唯一的一次注册机会。
    *
-   * 任何一个条件不满足都返回 false，调用方据此维持原有的 SignUpForbidden，
-   * 不泄露"链接是否存在"这类信息。
+   * 返回 true 表示本次注册可以豁免 allowSignup。任何一个条件不满足都返回
+   * false，调用方据此维持原有的 SignUpForbidden，不泄露"链接是否存在"。
    */
-  async consumeSignupQuota(inviteId?: string | null): Promise<boolean> {
+  async claimSignup(inviteId?: string | null): Promise<boolean> {
     if (!inviteId) {
       return false;
     }
@@ -53,15 +50,10 @@ export class InviteLinkSignupService {
     const key = inviteLinkCacheKey(inviteId);
     const payload = await this.cache.get<InviteLinkPayload>(key);
     if (!payload?.workspaceId) {
+      // 链接不存在、已过期，或已被 revoke
       return false;
     }
 
-    const quota = payload.signupQuota ?? 0;
-    if (quota <= 0) {
-      return false;
-    }
-
-    // 计数跟着链接一起过期，链接被 revoke 后残留的计数也会自然消失
     const ttl = await this.cache.ttl(key);
     if (!isValidCacheTtl(ttl)) {
       return false;
@@ -73,15 +65,8 @@ export class InviteLinkSignupService {
       1
     );
 
-    // increaseWithTtl 失败时返回 0，同样视为不放行
-    if (used <= 0 || used > quota) {
-      if (used > 0) {
-        // 超额的这次自增要退回去，否则并发下计数会持续虚高
-        await this.cache.decrease(inviteLinkSignupCountKey(inviteId), 1);
-      }
-      return false;
-    }
-
-    return true;
+    // 首次自增返回 1；之后恒大于 1，链接不再放行注册。
+    // increaseWithTtl 失败时返回 0，同样不放行。
+    return used === 1;
   }
 }

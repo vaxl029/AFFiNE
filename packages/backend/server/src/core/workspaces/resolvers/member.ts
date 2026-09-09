@@ -478,22 +478,10 @@ export class WorkspaceMemberResolver {
 
     const inviteId = nanoid();
     const cacheInviteId = inviteLinkCacheKey(inviteId);
-    // 关闭公开注册时，这条链接还要承担"让新人注册"的职责。按签发当时的
-    // 剩余席位给出注册名额，用满即止——链接是可转发的，没有名额约束就等于
-    // 开放注册。名额只是注册闸门，真正入群仍要走 UnderReview 审核。
-    const seatQuota = await this.quota.getWorkspaceSeatQuota(workspaceId);
-    const signupQuota = Math.max(
-      seatQuota.memberLimit - seatQuota.memberCount,
-      0
-    );
     await this.cache.set(cacheWorkspaceId, { inviteId }, { ttl: expireTime });
     await this.cache.set(
       cacheInviteId,
-      {
-        workspaceId,
-        inviterUserId: user.id,
-        signupQuota,
-      } satisfies InviteLinkPayload,
+      { workspaceId, inviterUserId: user.id } satisfies InviteLinkPayload,
       { ttl: expireTime }
     );
     this.event.emit('workspace.invite_link.created', { workspaceId });

@@ -156,11 +156,11 @@ export class MagicLinkAuthService {
   private async assertSignupAllowed(email: string, inviteId?: string) {
     // 关闭公开注册后，"邀请新人"上游只留了邮箱邀请一条路（那条会预建用户
     // 记录所以不受影响），邀请链接则必然撞 SignUpForbidden。这里放行持有
-    // 有效邀请链接的注册，但要消耗该链接的注册名额——链接可转发，只验过期
-    // 等于开放注册。
+    // 有效邀请链接的注册，一条链接只认一次——链接可转发，只验过期等于
+    // 开放注册。
     if (
       !this.config.auth.allowSignup &&
-      !(await this.inviteSignup.consumeSignupQuota(inviteId))
+      !(await this.inviteSignup.claimSignup(inviteId))
     ) {
       throw new SignUpForbidden();
     }
