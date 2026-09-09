@@ -194,3 +194,61 @@ export const SUPPORTED_LANGUAGES: Record<
     resource: () => import('./tr.json'),
   },
 };
+
+// ─── 浏览器语言识别 ────────────────────────────────────────────────────────
+// 上游没有任何检测，首次访问一律落到英文，用户必须手动切一次才会被记住。
+// 这里按 navigator.languages 的优先级顺序做三级匹配。
+
+/**
+ * 中文的 BCP 47 标签同时存在“地区”和“字形”两种写法，而资源只按字形拆分，
+ * 需要单独归并：zh-CN / zh-SG / zh-MY → 简体，zh-TW / zh-HK / zh-MO → 繁体。
+ * 裸 zh 按大陆用户占多数处理，归到简体。
+ */
+const CHINESE_REGION_TO_SCRIPT: Record<string, Language> = {
+  cn: 'zh-Hans',
+  sg: 'zh-Hans',
+  my: 'zh-Hans',
+  hans: 'zh-Hans',
+  tw: 'zh-Hant',
+  hk: 'zh-Hant',
+  mo: 'zh-Hant',
+  hant: 'zh-Hant',
+};
+
+function matchLanguage(tag: string): Language | null {
+  const normalized = tag.trim();
+  if (!normalized) return null;
+
+  // 1. 精确命中，如 zh-Hans / pt-BR / es-AR
+  const exact = Object.keys(SUPPORTED_LANGUAGES).find(
+    key => key.toLowerCase() === normalized.toLowerCase()
+  );
+  if (exact) return exact as Language;
+
+  const [base, region] = normalized.toLowerCase().split('-');
+
+  // 2. 中文归并
+  if (base === 'zh') {
+    return CHINESE_REGION_TO_SCRIPT[region ?? ''] ?? 'zh-Hans';
+  }
+
+  // 3. 退到主语言段，如 en-US → en、es-MX → es
+  return base in SUPPORTED_LANGUAGES ? (base as Language) : null;
+}
+
+/**
+ * 按浏览器偏好顺序返回首个受支持的语言；全部落空时回退英文。
+ */
+export function detectBrowserLanguage(): Language {
+  const tags =
+    typeof navigator === 'undefined'
+      ? []
+      : (navigator.languages ?? [navigator.language]).filter(Boolean);
+
+  for (const tag of tags) {
+    const matched = matchLanguage(tag);
+    if (matched) return matched;
+  }
+
+  return 'en';
+}

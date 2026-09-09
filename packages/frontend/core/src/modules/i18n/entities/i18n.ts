@@ -1,6 +1,7 @@
 import { notify } from '@affine/component';
 import { DebugLogger } from '@affine/debug';
 import {
+  detectBrowserLanguage,
   getOrCreateI18n,
   i18nCompletenesses,
   type Language,
@@ -60,7 +61,8 @@ export class I18n extends Entity {
   }
 
   init() {
-    const language = this.currentLanguageKey$.value ?? 'en';
+    // 缓存里有值 = 用户手动选过，优先级最高；否则按浏览器偏好识别
+    const language = this.currentLanguageKey$.value ?? detectBrowserLanguage();
     this.applyDocumentLanguage(language);
     this.changeLanguage(language);
   }

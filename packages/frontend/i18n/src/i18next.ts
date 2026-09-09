@@ -5,11 +5,14 @@ import { initReactI18next } from 'react-i18next';
 
 import type { useAFFiNEI18N } from './i18n.gen';
 import type { Language } from './resources';
-import { SUPPORTED_LANGUAGES } from './resources';
+import { detectBrowserLanguage, SUPPORTED_LANGUAGES } from './resources';
 
 const logger = new DebugLogger('i18n');
 
+// en 的资源是内联打包的，必须始终作为兜底保留；initialLng 只决定首屏
+// 先加载哪份资源，用户的显式选择随后由 I18n entity 的 init() 纠正。
 const defaultLng: Language = 'en';
+const initialLng: Language = detectBrowserLanguage();
 
 let _instance: i18n | null = null;
 export const getOrCreateI18n = (): i18n => {
@@ -38,7 +41,7 @@ export const getOrCreateI18n = (): i18n => {
         },
       } as BackendModule)
       .init({
-        lng: defaultLng,
+        lng: initialLng,
         fallbackLng: code => {
           // always fallback to english
           const fallbacks: string[] = [defaultLng];
