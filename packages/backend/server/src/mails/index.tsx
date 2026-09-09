@@ -1,5 +1,6 @@
 import { type ComponentType, createElement } from 'react';
 
+import { SITE_NAME } from './components/common';
 import { Comment, CommentMention, Mention } from './docs';
 import { render } from './render';
 import {
@@ -62,57 +63,45 @@ function make<T extends ComponentType<any>>(
 
 export const Renderers = {
   //#region Test
-  TestMail: make(TestMail, 'Test Email from AFFiNE'),
+  TestMail: make(TestMail, `${SITE_NAME} 测试邮件`),
   //#endregion
 
   //#region User
-  SignIn: make(SignIn, 'Sign in to AFFiNE'),
-  SignUp: make(SignUp, 'Your AFFiNE account is waiting for you!'),
-  SetPassword: make(SetPassword, 'Set your AFFiNE password'),
-  ChangePassword: make(ChangePassword, 'Modify your AFFiNE password'),
-  VerifyEmail: make(VerifyEmail, 'Verify your email address'),
-  ChangeEmail: make(ChangeEmail, 'Change your email address'),
-  VerifyChangeEmail: make(VerifyChangeEmail, 'Verify your new email address'),
-  EmailChanged: make(ChangeEmailNotification, 'Account email address changed'),
+  SignIn: make(SignIn, `登录 ${SITE_NAME}`),
+  SignUp: make(SignUp, `你的 ${SITE_NAME} 账号已就绪`),
+  SetPassword: make(SetPassword, '设置你的密码'),
+  ChangePassword: make(ChangePassword, '修改你的密码'),
+  VerifyEmail: make(VerifyEmail, '验证你的邮箱地址'),
+  ChangeEmail: make(ChangeEmail, '更换你的邮箱地址'),
+  VerifyChangeEmail: make(VerifyChangeEmail, '验证你的新邮箱地址'),
+  EmailChanged: make(ChangeEmailNotification, '账号邮箱已变更'),
   //#endregion
 
   //#region Workspace
-  MemberInvitation: make(
-    Invitation,
-    'You were invited to join a workspace on AFFiNE'
-  ),
-  MemberAccepted: make(
-    InvitationAccepted,
-    'Your workspace invitation was accepted'
-  ),
-  MemberLeave: make(MemberLeave, 'A workspace member left'),
+  MemberInvitation: make(Invitation, `有人邀请你加入 ${SITE_NAME} 的工作区`),
+  MemberAccepted: make(InvitationAccepted, '你的工作区邀请已被接受'),
+  MemberLeave: make(MemberLeave, '有成员离开了工作区'),
   LinkInvitationReviewRequest: make(
     LinkInvitationReviewRequest,
-    'New request to join a workspace'
+    '有人申请加入工作区'
   ),
   LinkInvitationApprove: make(
     LinkInvitationApproved,
-    'Your request to join a workspace has been approved'
+    '你的工作区加入申请已通过'
   ),
   LinkInvitationDecline: make(
     LinkInvitationReviewDeclined,
-    'Your request to join a workspace was declined'
+    '你的工作区加入申请被拒绝'
   ),
-  MemberRemoved: make(MemberRemoved, 'You have been removed from a workspace'),
-  OwnershipTransferred: make(
-    OwnershipTransferred,
-    'Your workspace ownership has been transferred'
-  ),
-  OwnershipReceived: make(
-    OwnershipReceived,
-    'You are now the owner of a workspace'
-  ),
+  MemberRemoved: make(MemberRemoved, '你已被移出工作区'),
+  OwnershipTransferred: make(OwnershipTransferred, '你的工作区所有权已转移'),
+  OwnershipReceived: make(OwnershipReceived, '你已成为工作区所有者'),
   //#endregion
 
   //#region Doc
-  Mention: make(Mention, 'You were mentioned in AFFiNE'),
-  Comment: make(Comment, 'New comment in AFFiNE'),
-  CommentMention: make(CommentMention, 'You were mentioned in a comment'),
+  Mention: make(Mention, '有人在文档中提到了你'),
+  Comment: make(Comment, '文档有新评论'),
+  CommentMention: make(CommentMention, '有人在评论中提到了你'),
   //#endregion
 
   //#region Team

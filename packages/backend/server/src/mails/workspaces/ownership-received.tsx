@@ -17,12 +17,11 @@ export default function OwnershipReceived(props: OwnershipReceivedProps) {
 
   return (
     <Template>
-      <Title>Welcome, new workspace owner!</Title>
+      <Title>你已成为工作区所有者</Title>
       <Content>
         <P>
-          You have been assigned as the owner of
-          <Workspace {...workspace} />. As a workspace owner, you have full
-          control over this workspace.
+          你已被指定为 <Workspace {...workspace} />{' '}
+          的所有者，拥有该工作区的完全控制权。
         </P>
       </Content>
     </Template>

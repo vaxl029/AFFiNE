@@ -9,11 +9,10 @@ export default function ChangeEmailNotification(
 ) {
   return (
     <Template>
-      <Title>Verify your current email for AFFiNE</Title>
+      <Title>账号邮箱已变更</Title>
       <Content>
         <P>
-          As per your request, we have changed your email. Please make sure
-          you&apos;re using <Name>{props.to}</Name> to log in the next time.
+          你的邮箱已按请求完成变更，下次请使用 <Name>{props.to}</Name> 登录。
         </P>
       </Content>
     </Template>

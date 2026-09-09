@@ -20,12 +20,11 @@ export default function MemberLeave(props: MemberLeaveProps) {
   return (
     <Template>
       <Title>
-        Member left <Workspace {...workspace} size={24} />
+        有成员离开了 <Workspace {...workspace} size={24} />
       </Title>
       <Content>
         <P>
-          <Name>{user.email}</Name> has left workspace{' '}
-          <Workspace {...workspace} />
+          <Name>{user.email}</Name> 已离开工作区 <Workspace {...workspace} />
         </P>
       </Content>
     </Template>

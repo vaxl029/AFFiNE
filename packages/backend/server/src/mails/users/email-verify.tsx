@@ -7,18 +7,17 @@ export type VerifyEmailProps = {
 export default function VerifyEmail(props: VerifyEmailProps) {
   return (
     <Template>
-      <Title>Verify your email address</Title>
+      <Title>验证你的邮箱地址</Title>
       <Content>
         <P>
-          You recently requested to verify the email address associated with
-          your AFFiNE account.
+          你请求验证与账号绑定的邮箱地址。
           <br />
-          To complete this process, please click on the verification link below.
+          请点击下面的链接完成验证。
         </P>
         <P>
-          This magic link will expire in <Bold>30 minutes</Bold>.
+          该链接将在 <Bold>30 分钟</Bold>后失效。
         </P>
-        <Button href={props.url}>Verify your email address</Button>
+        <Button href={props.url}>验证邮箱</Button>
       </Content>
     </Template>
   );

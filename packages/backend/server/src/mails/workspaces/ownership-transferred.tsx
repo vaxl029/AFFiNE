@@ -16,11 +16,11 @@ export default function OwnershipTransferred(props: OwnershipTransferredProps) {
   const { workspace } = props;
   return (
     <Template>
-      <Title>Ownership transferred</Title>
+      <Title>所有权已转移</Title>
       <Content>
         <P>
-          You have transferred ownership of <Workspace {...workspace} />. You
-          are now a collaborator in this workspace.
+          你已转移 <Workspace {...workspace} />{' '}
+          的所有权，现在是该工作区的协作者。
         </P>
       </Content>
     </Template>

@@ -4,6 +4,7 @@ import {
   OnelineCodeBlock,
   P,
   SecondaryText,
+  SITE_NAME,
   Template,
   Title,
 } from '../components';
@@ -17,19 +18,14 @@ export type SignUpProps = {
 export default function SignUp(props: SignUpProps) {
   return (
     <Template>
-      <Title>{`Sign up to ${props.serverName ?? 'AFFiNE'}`}</Title>
+      <Title>{`注册 ${props.serverName ?? SITE_NAME}`}</Title>
       <Content>
-        <P>You are signing up to AFFiNE. Here is your code:</P>
+        <P>你正在注册账号，验证码如下：</P>
         <OnelineCodeBlock>{props.otp}</OnelineCodeBlock>
+        <P>也可以直接点击下面的注册链接：</P>
+        <Button href={props.url}>点击注册</Button>
         <P>
-          Alternatively, you can sign up directly by clicking the magic link
-          below:
-        </P>
-        <Button href={props.url}>Sign up with Magic Link</Button>
-        <P>
-          <SecondaryText>
-            This code and link will expire in 30 minutes.
-          </SecondaryText>
+          <SecondaryText>验证码与链接将在 30 分钟后失效。</SecondaryText>
         </P>
       </Content>
     </Template>

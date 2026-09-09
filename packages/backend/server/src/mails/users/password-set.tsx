@@ -7,13 +7,12 @@ export type SetPasswordProps = {
 export default function SetPassword(props: SetPasswordProps) {
   return (
     <Template>
-      <Title>Set your AFFiNE password</Title>
+      <Title>设置你的密码</Title>
       <Content>
         <P>
-          Click the button below to set your password. The magic link will
-          expire in <Bold>30 minutes</Bold>.
+          点击下面的按钮设置密码，该链接将在 <Bold>30 分钟</Bold>后失效。
         </P>
-        <Button href={props.url}>Sign in to AFFiNE</Button>
+        <Button href={props.url}>设置密码</Button>
       </Content>
     </Template>
   );

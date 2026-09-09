@@ -7,13 +7,12 @@ export type ChangePasswordProps = {
 export default function ChangePassword(props: ChangePasswordProps) {
   return (
     <Template>
-      <Title>Modify your AFFiNE password</Title>
+      <Title>修改你的密码</Title>
       <Content>
         <P>
-          Click the button below to reset your password. The magic link will
-          expire in <Bold>30 minutes</Bold>.
+          点击下面的按钮重置密码，该链接将在 <Bold>30 分钟</Bold>后失效。
         </P>
-        <Button href={props.url}>Set new password</Button>
+        <Button href={props.url}>重置密码</Button>
       </Content>
     </Template>
   );

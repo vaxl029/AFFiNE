@@ -20,12 +20,12 @@ export function CommentMention(props: CommentMentionProps) {
   const { user, doc } = props;
   return (
     <Template>
-      <Title>You are mentioned in a comment</Title>
+      <Title>有人在评论中提到了你</Title>
       <Content>
         <P>
-          <User {...user} /> mentioned you in a comment on <Doc {...doc} />.
+          <User {...user} /> 在 <Doc {...doc} /> 的评论中提到了你。
         </P>
-        <Button href={doc.url}>View Comment</Button>
+        <Button href={doc.url}>查看评论</Button>
       </Content>
     </Template>
   );

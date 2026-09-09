@@ -24,15 +24,15 @@ export default function LinkInvitationReviewRequest(
   return (
     <Template>
       <Title>
-        Request to join <Workspace {...workspace} size={24} />
+        有人申请加入 <Workspace {...workspace} size={24} />
       </Title>
       <Content>
         <P>
-          <User {...user} /> has requested to join <Workspace {...workspace} />.
+          <User {...user} /> 申请加入 <Workspace {...workspace} />。
           <br />
-          As a workspace owner/admin, you can approve or decline this request.
+          作为工作区所有者或管理员，你可以通过或拒绝该申请。
         </P>
-        <Button href={url}>Review request</Button>
+        <Button href={url}>处理申请</Button>
       </Content>
     </Template>
   );

@@ -20,12 +20,12 @@ export function Comment(props: CommentProps) {
   const { user, doc } = props;
   return (
     <Template>
-      <Title>You have a new comment</Title>
+      <Title>你有一条新评论</Title>
       <Content>
         <P>
-          <User {...user} /> commented on <Doc {...doc} />.
+          <User {...user} /> 评论了 <Doc {...doc} />。
         </P>
-        <Button href={doc.url}>View Comment</Button>
+        <Button href={doc.url}>查看评论</Button>
       </Content>
     </Template>
   );

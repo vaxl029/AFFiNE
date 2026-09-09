@@ -7,14 +7,13 @@ export type VerifyChangeEmailProps = {
 export default function VerifyChangeEmail(props: VerifyChangeEmailProps) {
   return (
     <Template>
-      <Title>Verify your new email address</Title>
+      <Title>验证你的新邮箱地址</Title>
       <Content>
         <P>
-          You recently requested to change the email address associated with
-          your AFFiNE account. To complete this process, please click on the
-          verification link below. This magic link will expire in 30 minutes.
+          你请求更换与账号绑定的邮箱地址。请点击下面的链接完成验证，该链接将在
+          30 分钟后失效。
         </P>
-        <Button href={props.url}>Verify your new email address</Button>
+        <Button href={props.url}>验证新邮箱</Button>
       </Content>
     </Template>
   );

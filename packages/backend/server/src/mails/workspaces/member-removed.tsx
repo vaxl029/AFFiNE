@@ -16,11 +16,11 @@ export default function MemberRemoved(props: MemberRemovedProps) {
   const { workspace } = props;
   return (
     <Template>
-      <Title>Workspace access removed</Title>
+      <Title>你已被移出工作区</Title>
       <Content>
         <P>
-          You have been removed from <Workspace {...workspace} />. You no longer
-          have access to this workspace.
+          你已被移出 <Workspace {...workspace} />
+          ，无法再访问该工作区。
         </P>
       </Content>
     </Template>

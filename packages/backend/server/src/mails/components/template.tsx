@@ -3,14 +3,12 @@ import { Button as EmailButton } from '@react-email/button';
 import { Container } from '@react-email/container';
 import { Head } from '@react-email/head';
 import { Html } from '@react-email/html';
-import { Img } from '@react-email/img';
-import { Link } from '@react-email/link';
 import { Row } from '@react-email/row';
 import { Section } from '@react-email/section';
 import { Text as EmailText } from '@react-email/text';
 import type { PropsWithChildren } from 'react';
 
-import { BasicTextStyle } from './common';
+import { BasicTextStyle, SITE_NAME } from './common';
 import { Footer } from './footer';
 
 export function Title(props: PropsWithChildren) {
@@ -211,14 +209,20 @@ export function Template(props: PropsWithChildren) {
             padding: '24px',
           }}
         >
+          {/* 上游这里是从 cdn.affine.pro 拉取的 AFFiNE logo 且链接到官网。
+              换成纯文字站点名：不署上游的名，也不依赖外部 CDN——邮件客户端
+              拦截远程图片时也不会变成裂图。 */}
           <Section>
-            <Link href="https://affine.pro">
-              <Img
-                src="https://cdn.affine.pro/mail/2023-8-9/affine-logo.png"
-                alt="AFFiNE logo"
-                height="32px"
-              />
-            </Link>
+            <EmailText
+              style={{
+                ...BasicTextStyle,
+                fontSize: '20px',
+                fontWeight: '600',
+                margin: '0',
+              }}
+            >
+              {SITE_NAME}
+            </EmailText>
           </Section>
           {content}
         </Container>
