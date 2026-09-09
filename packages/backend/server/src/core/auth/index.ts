@@ -13,6 +13,7 @@ import { AuthSessionService } from './auth-session';
 import { AuthChallengeStore } from './challenge-store';
 import { AuthController } from './controller';
 import { AuthGuard, AuthWebsocketOptionsProvider } from './guard';
+import { InviteLinkSignupService } from './invite-signup';
 import { AuthCronJob } from './job';
 import { MagicLinkAuthService } from './magic-link';
 import { AuthMethodsService } from './methods';
@@ -49,6 +50,7 @@ import { AuthSigningKeyResolver } from './signing-key-resolver';
     AuthSigningKeyResolver,
     AuthCronJob,
     AuthWebsocketOptionsProvider,
+    InviteLinkSignupService,
   ],
   exports: [
     AuthService,
@@ -63,6 +65,7 @@ import { AuthSigningKeyResolver } from './signing-key-resolver';
     AuthSessionService,
     AuthSigningKeyRing,
     AuthWebsocketOptionsProvider,
+    InviteLinkSignupService,
   ],
   controllers: [AuthController],
 })
@@ -72,6 +75,11 @@ export { AuthChallengeStore } from './challenge-store';
 export * from './guard';
 export * from './identity';
 export * from './input';
+export {
+  inviteLinkCacheKey,
+  type InviteLinkPayload,
+  InviteLinkSignupService,
+} from './invite-signup';
 export { MagicLinkAuthService } from './magic-link';
 export * from './methods';
 export { SessionExchangeService };

@@ -136,7 +136,8 @@ export class AuthController {
         res,
         credential.email,
         credential.callbackUrl,
-        credential.client_nonce
+        credential.client_nonce,
+        credential.inviteId
       );
     }
   }
@@ -165,11 +166,16 @@ export class AuthController {
     res: Response,
     email: string,
     callbackUrl = '/magic-link',
-    clientNonce?: string
+    clientNonce?: string,
+    inviteId?: string
   ) {
-    const payload = await this.magicLink.send(email, callbackUrl, clientNonce, {
-      source: getAbuseRequestSource(req, this.config),
-    });
+    const payload = await this.magicLink.send(
+      email,
+      callbackUrl,
+      clientNonce,
+      { source: getAbuseRequestSource(req, this.config) },
+      inviteId
+    );
     res.status(HttpStatus.OK).send(payload);
   }
 

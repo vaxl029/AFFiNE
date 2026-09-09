@@ -16,7 +16,22 @@ import type { MailDeliveryMetadata } from '../mail/types';
 import { validators } from '../utils/validators';
 import { verifyEmailDomainRecords } from './email-domain';
 import type { VerifiedIdentity } from './identity';
+import { InviteLinkSignupService } from './invite-signup';
 import { AuthService } from './service';
+
+// 只认站内的 /invite/:inviteId，且 inviteId 必须是 nanoid 那种字符集。
+// 传进来的地址已经过 isAllowedRedirectUri 校验（站内路径或白名单域名），
+// 这里再收一次口，避免把任意字符串当成 cache key 去查。
+const INVITE_PATH = /^\/invite\/([A-Za-z0-9_-]{1,128})\/?$/;
+
+function parseInviteId(redirectUri: string | null): string | undefined {
+  if (!redirectUri) {
+    return undefined;
+  }
+
+  const path = redirectUri.split('?')[0].split('#')[0];
+  return INVITE_PATH.exec(path)?.[1];
+}
 
 @Injectable()
 export class MagicLinkAuthService {
@@ -27,14 +42,16 @@ export class MagicLinkAuthService {
     private readonly auth: AuthService,
     private readonly models: Models,
     private readonly config: Config,
-    private readonly crypto: CryptoHelper
+    private readonly crypto: CryptoHelper,
+    private readonly inviteSignup: InviteLinkSignupService
   ) {}
 
   async send(
     email: string,
     callbackUrl = '/magic-link',
     clientNonce?: string,
-    metadata?: Pick<MailDeliveryMetadata, 'source'>
+    metadata?: Pick<MailDeliveryMetadata, 'source'>,
+    inviteId?: string
   ) {
     validators.assertValidEmail(email);
 
@@ -57,7 +74,13 @@ export class MagicLinkAuthService {
     });
 
     if (!user) {
-      await this.assertSignupAllowed(email);
+      // 未登录用户点邀请链接会被送到 /sign-in?redirect_uri=/invite/:inviteId，
+      // 登录请求把它原样放进 callbackUrl。显式传入的 inviteId 优先，
+      // 否则从这个已经过 isAllowedRedirectUri 校验的地址里取。
+      await this.assertSignupAllowed(
+        email,
+        inviteId ?? parseInviteId(redirectUriInCallback)
+      );
     } else if (user.disabled) {
       throw new WrongSignInCredentials({ email });
     }
@@ -130,8 +153,15 @@ export class MagicLinkAuthService {
     return { userId: user.id, method: 'magic_link' };
   }
 
-  private async assertSignupAllowed(email: string) {
-    if (!this.config.auth.allowSignup) {
+  private async assertSignupAllowed(email: string, inviteId?: string) {
+    // 关闭公开注册后，"邀请新人"上游只留了邮箱邀请一条路（那条会预建用户
+    // 记录所以不受影响），邀请链接则必然撞 SignUpForbidden。这里放行持有
+    // 有效邀请链接的注册，但要消耗该链接的注册名额——链接可转发，只验过期
+    // 等于开放注册。
+    if (
+      !this.config.auth.allowSignup &&
+      !(await this.inviteSignup.consumeSignupQuota(inviteId))
+    ) {
       throw new SignUpForbidden();
     }
 

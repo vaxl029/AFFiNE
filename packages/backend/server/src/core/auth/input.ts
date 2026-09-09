@@ -48,6 +48,9 @@ export const SignInBodySchema = z
     password: z.string().min(1).max(1024).optional(),
     callbackUrl: z.string().min(1).max(2048).optional(),
     client_nonce: ClientNonceSchema.optional(),
+    // 从 /invite/:inviteId 落地页带过来的邀请标识。仅在关闭了公开注册时
+    // 起作用：持有有效链接才允许注册，且要消耗该链接的注册名额。
+    inviteId: z.string().min(1).max(128).optional(),
     // TODO(auth-session): remove these ignored body fields after Electron 0.26.x
     // compatibility is dropped; captcha credentials belong in request headers.
     verifyToken: z.string().max(4096).optional(),
