@@ -32,9 +32,59 @@ export const inviteLinkCacheKey = (inviteId: string) =>
 const inviteLinkSignupCountKey = (inviteId: string) =>
   `workspace:inviteLinkSignup:${inviteId}`;
 
+// 只认站内的 /invite/:inviteId，且 inviteId 必须是 nanoid 那种字符集。
+// 传进来的地址已经过 isAllowedRedirectUri 校验（站内路径或白名单域名），
+// 这里再收一次口，避免把任意字符串当成 cache key 去查。
+const INVITE_PATH = /^\/invite\/([A-Za-z0-9_-]{1,128})\/?$/;
+
+/**
+ * 从 /sign-in?redirect_uri=... 的目标地址里取出邀请标识。
+ */
+export function parseInviteId(
+  redirectUri: string | null | undefined
+): string | undefined {
+  if (!redirectUri) {
+    return undefined;
+  }
+
+  const path = redirectUri.split('?')[0].split('#')[0];
+  return INVITE_PATH.exec(path)?.[1];
+}
+
 @Injectable()
 export class InviteLinkSignupService {
   constructor(private readonly cache: Cache) {}
+
+  /**
+   * 这条链接现在还能不能换一个注册名额——只读，不消耗。
+   *
+   * 登录预检要靠它决定是否把 magicLink 标为可用；预检可能被重复调用
+   * （用户改一次邮箱就是一次），绝不能在这里 claim，否则名额会被白白
+   * 烧掉，人还没收到邮件链接就失效了。
+   */
+  async canClaimSignup(inviteId?: string | null): Promise<boolean> {
+    if (!inviteId) {
+      return false;
+    }
+
+    const key = inviteLinkCacheKey(inviteId);
+    const payload = await this.cache.get<InviteLinkPayload>(key);
+    if (!payload?.workspaceId) {
+      return false;
+    }
+
+    if (!isValidCacheTtl(await this.cache.ttl(key))) {
+      return false;
+    }
+
+    // 计数由 INCR 写入，落在 Redis 里是裸数字字符串，正好是合法 JSON，
+    // 能被 Cache.get 的 JSON.parse 原样读回；键不存在时得到 undefined。
+    const used = await this.cache.get<number>(
+      inviteLinkSignupCountKey(inviteId)
+    );
+
+    return !used;
+  }
 
   /**
    * 认领这条邀请链接唯一的一次注册机会。

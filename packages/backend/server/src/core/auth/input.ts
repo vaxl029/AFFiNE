@@ -39,7 +39,12 @@ const ClientNonceSchema = z.string().min(1).max(512);
 const ChallengeTokenSchema = z.string().min(1).max(512);
 
 export const AuthPreflightBodySchema = z
-  .object({ email: EmailSchema })
+  .object({
+    email: EmailSchema,
+    // 未登录用户点邀请链接会被送到 /sign-in?redirect_uri=/invite/:inviteId。
+    // 预检要据此判断对方是否持有效邀请，否则关闭公开注册时会直接判死。
+    redirectUri: z.string().min(1).max(2048).optional(),
+  })
   .strict();
 
 export const SignInBodySchema = z

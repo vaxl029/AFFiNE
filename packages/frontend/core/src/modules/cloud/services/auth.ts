@@ -330,8 +330,8 @@ export class AuthService extends Service {
     return res;
   }
 
-  checkUserByEmail(email: string) {
-    return this.store.checkUserByEmail(email);
+  checkUserByEmail(email: string, redirectUri?: string) {
+    return this.store.checkUserByEmail(email, redirectUri);
   }
 
   captchaHeaders(token: string, challenge?: string) {

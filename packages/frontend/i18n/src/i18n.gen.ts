@@ -438,7 +438,7 @@ export function useAFFiNEI18N(): {
       */
     Select(): string;
     /**
-      * `Sign in to Log.cx`
+      * `Sign in`
       */
     ["Sign in"](): string;
     /**
@@ -446,7 +446,7 @@ export function useAFFiNEI18N(): {
       */
     ["Sign in and Enable"](): string;
     /**
-      * `Sign out of Log.cx`
+      * `Sign out`
       */
     ["Sign out"](): string;
     /**
@@ -712,11 +712,11 @@ export function useAFFiNEI18N(): {
       */
     ["com.affine.aboutAFFiNE.legal.tos"](): string;
     /**
-      * `Information about AFFiNE`
+      * `Information about this site`
       */
     ["com.affine.aboutAFFiNE.subtitle"](): string;
     /**
-      * `About AFFiNE`
+      * `About`
       */
     ["com.affine.aboutAFFiNE.title"](): string;
     /**
@@ -1520,7 +1520,7 @@ export function useAFFiNEI18N(): {
       */
     ["com.affine.auth.sign.email.placeholder"](): string;
     /**
-      * `Sign in to Log.cx`
+      * `Sign in to 地球OL日志`
       */
     ["com.affine.auth.sign.in"](): string;
     /**
@@ -1580,11 +1580,15 @@ export function useAFFiNEI18N(): {
       */
     ["com.affine.auth.signed.success.title"](): string;
     /**
+      * `This email is not available for sign in. If you don't have an account yet, join through an invite link.`
+      */
+    ["com.affine.auth.toast.message.email-not-available"](): string;
+    /**
       * `Server error, please try again later.`
       */
     ["com.affine.auth.toast.message.failed"](): string;
     /**
-      * `You have signed in to AFFiNE.`
+      * `You have signed in.`
       */
     ["com.affine.auth.toast.message.signed-in"](): string;
     /**
@@ -7749,7 +7753,7 @@ export function useAFFiNEI18N(): {
       */
     ["com.affine.storage.plan"](): string;
     /**
-      * `AFFiNE Sync storage`
+      * `Sync storage`
       */
     ["com.affine.storage.title"](): string;
     /**
@@ -8899,7 +8903,7 @@ export function useAFFiNEI18N(): {
       */
     ["com.affine.integration.web-clipper.desc"](): string;
     /**
-      * `Elevate your AFFiNE experience with diverse add-ons and seamless integrations.`
+      * `Elevate your experience with diverse add-ons and seamless integrations.`
       */
     ["com.affine.integration.setting.description"](): string;
     /**

@@ -206,10 +206,11 @@ export class AuthStore extends Store {
     });
   }
 
-  async checkUserByEmail(email: string) {
+  async checkUserByEmail(email: string, redirectUri?: string) {
     const res = await this.fetchService.fetch('/api/auth/preflight', {
       method: 'POST',
-      body: JSON.stringify({ email }),
+      // redirectUri 带上邀请落地页，服务端据此判断能否放行注册
+      body: JSON.stringify({ email, redirectUri }),
       headers: {
         'content-type': 'application/json',
       },

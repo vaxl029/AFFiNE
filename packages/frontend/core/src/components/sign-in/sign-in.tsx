@@ -85,7 +85,10 @@ export const SignInStep = ({
     setIsMutating(true);
 
     try {
-      const { methods } = await authService.checkUserByEmail(email);
+      const { methods } = await authService.checkUserByEmail(
+        email,
+        state.redirectUrl
+      );
       const hasPassword = methods.password.available;
       const canUseMagicLink = methods.magicLink.available;
 
@@ -105,8 +108,8 @@ export const SignInStep = ({
         }));
       } else {
         notify.error({
-          title: 'Failed to sign in',
-          message: 'This email is not available for sign in.',
+          title: t['com.affine.auth.toast.title.failed'](),
+          message: t['com.affine.auth.toast.message.email-not-available'](),
         });
       }
     } catch (err: any) {
@@ -114,13 +117,13 @@ export const SignInStep = ({
 
       // TODO(@eyhn): better error handling
       notify.error({
-        title: 'Failed to sign in',
+        title: t['com.affine.auth.toast.title.failed'](),
         message: err.message,
       });
     }
 
     setIsMutating(false);
-  }, [authService, changeState, email]);
+  }, [authService, changeState, email, state.redirectUrl, t]);
 
   const onAddSelfhosted = useCallback(() => {
     changeState(prev => ({

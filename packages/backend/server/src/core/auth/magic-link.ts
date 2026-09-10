@@ -16,22 +16,8 @@ import type { MailDeliveryMetadata } from '../mail/types';
 import { validators } from '../utils/validators';
 import { verifyEmailDomainRecords } from './email-domain';
 import type { VerifiedIdentity } from './identity';
-import { InviteLinkSignupService } from './invite-signup';
+import { InviteLinkSignupService, parseInviteId } from './invite-signup';
 import { AuthService } from './service';
-
-// 只认站内的 /invite/:inviteId，且 inviteId 必须是 nanoid 那种字符集。
-// 传进来的地址已经过 isAllowedRedirectUri 校验（站内路径或白名单域名），
-// 这里再收一次口，避免把任意字符串当成 cache key 去查。
-const INVITE_PATH = /^\/invite\/([A-Za-z0-9_-]{1,128})\/?$/;
-
-function parseInviteId(redirectUri: string | null): string | undefined {
-  if (!redirectUri) {
-    return undefined;
-  }
-
-  const path = redirectUri.split('?')[0].split('#')[0];
-  return INVITE_PATH.exec(path)?.[1];
-}
 
 @Injectable()
 export class MagicLinkAuthService {

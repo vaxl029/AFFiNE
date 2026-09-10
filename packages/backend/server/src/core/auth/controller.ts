@@ -42,6 +42,7 @@ import {
   SessionIdSchema,
   SignInBodySchema,
 } from './input';
+import { parseInviteId } from './invite-signup';
 import { MagicLinkAuthService } from './magic-link';
 import { AuthMethodsService } from './methods';
 import { OpenAppAuthService } from './open-app';
@@ -98,7 +99,10 @@ export class AuthController {
     }
     validators.assertValidEmail(input.data.email);
 
-    return this.authMethods.loginPreflight(input.data.email);
+    return this.authMethods.loginPreflight(
+      input.data.email,
+      parseInviteId(input.data.redirectUri)
+    );
   }
 
   @UseNamedGuard('version')
