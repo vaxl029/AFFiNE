@@ -4,7 +4,6 @@ import {
   Content,
   P,
   Template,
-  Title,
   User,
   type UserProps,
   Workspace,
@@ -22,10 +21,9 @@ export default function Invitation(props: InvitationProps) {
 
   return (
     <Template>
-      <Title>邀请你加入工作区</Title>
       <Content>
         <P>
-          <User {...user} /> 邀请你加入 <Workspace {...workspace} />
+          <User {...user} /> 邀请你加入 <Workspace {...workspace} /> 工作区
         </P>
         <P>点击下面的按钮即可加入</P>
         <Button href={url}>接受邀请</Button>

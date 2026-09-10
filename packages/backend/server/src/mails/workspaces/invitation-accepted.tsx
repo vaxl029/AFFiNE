@@ -4,7 +4,6 @@ import {
   Content,
   P,
   Template,
-  Title,
   User,
   type UserProps,
   Workspace,
@@ -21,10 +20,10 @@ export default function InvitationAccepted(props: InvitationAcceptedProps) {
   const { user, workspace, url } = props;
   return (
     <Template>
-      <Title>{user.email} 接受了你的邀请</Title>
       <Content>
+        <P>{user.email} 接受了你的邀请</P>
         <P>
-          <User {...user} /> 已加入 <Workspace {...workspace} />
+          <User {...user} /> 已加入 <Workspace {...workspace} /> 工作区
         </P>
         <Button href={url}>查看成员列表</Button>
       </Content>

@@ -261,6 +261,36 @@ export class NotificationModel extends BaseModel {
     });
   }
 
+  /**
+   * 把某人在某个工作区里待处理的邀请通知全部标为已读。
+   *
+   * 邀请一旦被接受，那张卡片就失去意义了：再点一次"接受并加入"只会撞上
+   * AlreadyInSpace。上游只改成员状态、不动通知，于是卡片会一直挂在通知
+   * 列表里当陷阱，所以接受成功后要顺手收掉。
+   */
+  async markInvitationsAsRead(userId: string, workspaceId: string) {
+    const { count } = await this.db.notification.updateMany({
+      where: {
+        userId,
+        type: NotificationType.Invitation,
+        read: false,
+        body: {
+          path: ['workspaceId'],
+          equals: workspaceId,
+        },
+      },
+      data: {
+        read: true,
+      },
+    });
+
+    if (count > 0) {
+      this.logger.debug(
+        `Marked ${count} invitation notification(s) as read for user ${userId} in workspace ${workspaceId}`
+      );
+    }
+  }
+
   async markAllAsRead(userId: string) {
     const { count } = await this.db.notification.updateMany({
       where: { userId },

@@ -734,9 +734,11 @@ export class WorkspaceMemberResolver {
         // if status is pending, should accept the invitation directly
         if (role.status === WorkspaceMemberStatus.Pending) {
           await this.acceptInvitationByEmail(role);
-        } else {
-          throw new AlreadyInSpace({ spaceId: invitation.workspaceId });
+          // 这里必须收尾。继续往下会再走一遍 acceptInvitationByLink，
+          // 把刚刚 Accepted 的成员重新写成 UnderReview，邀请等于白接受。
+          return true;
         }
+        throw new AlreadyInSpace({ spaceId: invitation.workspaceId });
       }
       await this.acceptInvitationByLink(
         user,
@@ -812,6 +814,11 @@ export class WorkspaceMemberResolver {
       role.inviterId ??
         (await this.models.workspaceUser.getOwner(role.workspaceId)).id,
       role.id
+    );
+    // 邀请已兑现，收掉受邀人那侧的邀请卡片，避免再点一次撞 AlreadyInSpace
+    await this.models.notification.markInvitationsAsRead(
+      role.userId,
+      role.workspaceId
     );
     await this.policy.reconcileWorkspaceQuotaState(role.workspaceId);
   }

@@ -78,7 +78,7 @@ export const Renderers = {
   //#endregion
 
   //#region Workspace
-  MemberInvitation: make(Invitation, `有人邀请你加入 ${SITE_NAME} 的工作区`),
+  MemberInvitation: make(Invitation, `有人邀请你加入 ${SITE_NAME}`),
   MemberAccepted: make(InvitationAccepted, '你的工作区邀请已被接受'),
   MemberLeave: make(MemberLeave, '有成员离开了工作区'),
   LinkInvitationReviewRequest: make(

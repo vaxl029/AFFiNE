@@ -28,11 +28,18 @@ export const SignInPanel = ({
   server: initialServerBaseUrl,
   initStep,
   onAuthenticated,
+  redirectUrl,
 }: {
   onAuthenticated?: (status: AuthSessionStatus) => void;
   onSkip: () => void;
   server?: string;
   initStep?: SignInStep | undefined;
+  /**
+   * 登录成功后要去的站内地址。SignInState 一直留着这个字段，但没人往里
+   * 填过，于是 magic link 的回跳地址恒为空——从 /invite/:id 过来的人登录
+   * 完会被扔回首页，而不是回到邀请确认页。
+   */
+  redirectUrl?: string;
 }) => {
   const [state, setState] = useState<SignInState>({
     step: initStep
@@ -41,6 +48,7 @@ export const SignInPanel = ({
         ? 'addSelfhosted'
         : 'signIn',
     initialServerBaseUrl: initialServerBaseUrl,
+    redirectUrl,
   });
 
   const defaultServerService = useService(DefaultServerService);

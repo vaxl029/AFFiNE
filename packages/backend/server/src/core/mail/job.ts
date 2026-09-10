@@ -217,17 +217,10 @@ export class MailJob {
             return;
           }
 
-          if (workspaceProps.avatar) {
-            options.attachments = [
-              {
-                cid: 'workspaceAvatar',
-                filename: 'workspaceAvatar',
-                content: workspaceProps.avatar,
-                encoding: 'base64',
-              },
-            ];
-            workspaceProps.avatar = 'cid:workspaceAvatar';
-          }
+          // 邮件模板只渲染工作区名称，不再引用 cid:workspaceAvatar。
+          // 继续挂这个内嵌附件的话，图片没人引用，客户端就把它当普通附件
+          // 列出来，收件人看到一个来路不明的 workspaceAvatar 文件。
+          workspaceProps.avatar = '';
           Object.assign(val, workspaceProps);
           delete val.$$workspaceId;
         } else if (typeof val.$$userId === 'string') {
