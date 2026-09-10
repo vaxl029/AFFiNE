@@ -551,6 +551,17 @@ export class NotificationService {
     await this.publishCountChanged(userId, 'read');
   }
 
+  /**
+   * 邀请兑现后收掉对应的邀请卡片。
+   *
+   * 走 service 而不是直接调 model，是为了带上 publishCountChanged——否则
+   * 通知从列表里消失了，右上角的未读小红点却还挂着。
+   */
+  async markInvitationsAsRead(userId: string, workspaceId: string) {
+    await this.models.notification.markInvitationsAsRead(userId, workspaceId);
+    await this.publishCountChanged(userId, 'read');
+  }
+
   async markAllAsRead(userId: string) {
     await this.models.notification.markAllAsRead(userId);
     await this.publishCountChanged(userId, 'read-all');

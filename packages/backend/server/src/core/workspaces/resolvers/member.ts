@@ -46,6 +46,7 @@ import {
 } from '../../auth';
 import { BackendRuntimeProvider } from '../../backend-runtime';
 import { blocksInviteByWorkspaceName } from '../../content-policy';
+import { NotificationService } from '../../notification';
 import {
   PermissionAccess,
   WorkspacePolicyService,
@@ -112,7 +113,8 @@ export class WorkspaceMemberResolver {
     private readonly quota: QuotaService,
     private readonly config: Config,
     private readonly inviteQuota: InviteQuotaAssertService,
-    private readonly runtime: BackendRuntimeProvider
+    private readonly runtime: BackendRuntimeProvider,
+    private readonly notification: NotificationService
   ) {}
 
   private async assertCanInviteOrShare(
@@ -710,6 +712,13 @@ export class WorkspaceMemberResolver {
         throw new InvalidInvitation();
       }
 
+      // 已经接受过就到此为止。上游对任何状态都重跑一遍接受流程，于是重复
+      // 点击会再查一次席位、再给邀请人发一封"已接受"邮件、再算一次配额，
+      // 任何一环出错就是一个 500——而用户想要的结果早已达成。
+      if (role.status === WorkspaceMemberStatus.Accepted) {
+        return true;
+      }
+
       await this.acceptInvitationByEmail(role);
     } else {
       // invitation by link
@@ -815,8 +824,8 @@ export class WorkspaceMemberResolver {
         (await this.models.workspaceUser.getOwner(role.workspaceId)).id,
       role.id
     );
-    // 邀请已兑现，收掉受邀人那侧的邀请卡片，避免再点一次撞 AlreadyInSpace
-    await this.models.notification.markInvitationsAsRead(
+    // 邀请已兑现，收掉受邀人那侧的邀请卡片，连同未读计数一起更新
+    await this.notification.markInvitationsAsRead(
       role.userId,
       role.workspaceId
     );

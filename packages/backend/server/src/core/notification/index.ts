@@ -21,3 +21,5 @@ import { NotificationService } from './service';
   exports: [NotificationService],
 })
 export class NotificationModule {}
+
+export { NotificationService };
