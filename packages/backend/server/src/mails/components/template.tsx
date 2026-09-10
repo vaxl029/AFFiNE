@@ -140,16 +140,16 @@ export function Button(
   );
 }
 
+/**
+ * 标题是可选的。页头已经写着站点名，短邮件再顶一行标题往往只是重复，
+ * 所以这里返回 null 让调用方跳过整个 Section，而不是像上游那样强制要求。
+ */
 function fetchTitle(
   children: React.ReactElement<PropsWithChildren>[]
-): React.ReactElement {
+): React.ReactElement | null {
   const title = children.find(child => child.type === Title);
 
-  if (!title || !title.props.children) {
-    throw new Error('<Title /> is required for an email.');
-  }
-
-  return title;
+  return title?.props.children ? title : null;
 }
 
 function fetchContent(
@@ -171,23 +171,36 @@ function fetchContent(
   return content;
 }
 
-function assertChildrenIsArray(
+/**
+ * 归一成数组。标题可选之后，只写一个 <Content /> 的邮件其 children 就不再
+ * 是数组，上游那句 Array.isArray 断言会直接把这类模板判死。
+ */
+function toChildrenArray(
   children: React.ReactNode
-): asserts children is React.ReactElement<PropsWithChildren>[] {
-  if (!Array.isArray(children) || !children.every(child => 'type' in child)) {
+): React.ReactElement<PropsWithChildren>[] {
+  const list = Array.isArray(children) ? children : [children];
+
+  if (
+    !list.every(
+      child => !!child && typeof child === 'object' && 'type' in child
+    )
+  ) {
     throw new Error(
-      'Children of `Template` element must be an array of [<Title />, <Content />, ...]'
+      'Children of `Template` element must be [<Title />?, <Content />, ...]'
     );
   }
+
+  return list as React.ReactElement<PropsWithChildren>[];
 }
 
 export function Template(props: PropsWithChildren) {
-  assertChildrenIsArray(props.children);
+  const children = toChildrenArray(props.children);
+  const title = fetchTitle(children);
 
   const content = (
     <>
-      <Section>{fetchTitle(props.children)}</Section>
-      <Section>{fetchContent(props.children)}</Section>
+      {title ? <Section>{title}</Section> : null}
+      <Section>{fetchContent(children)}</Section>
     </>
   );
 

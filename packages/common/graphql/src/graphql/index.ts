@@ -1826,6 +1826,7 @@ export const getInviteInfoQuery = {
     user {
       id
       name
+      email
       avatarUrl
     }
     status

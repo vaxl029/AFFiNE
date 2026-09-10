@@ -6255,6 +6255,7 @@ export type GetInviteInfoQuery = {
       __typename?: 'WorkspaceUserType';
       id: string;
       name: string;
+      email: string;
       avatarUrl: string | null;
     };
     invitee: {

@@ -29,13 +29,14 @@ export const RequestToJoinPage = ({
     <AuthPageContainer
       subtitle={
         <div className={styles.content}>
+          {/* 同 accept-invite-page：统一以邮箱示人 */}
           <div className={styles.userWrapper}>
             <Avatar
               url={inviteInfo?.user.avatarUrl || ''}
               name={inviteInfo?.user.name}
               size={20}
             />
-            <span className={styles.inviteName}>{inviteInfo?.user.name}</span>
+            <span className={styles.inviteName}>{inviteInfo?.user.email}</span>
           </div>
           <div>{t['invited you to join']()}</div>
           {/* 工作区头像是空 data URI 时会渲染成裂图，只保留名称 */}

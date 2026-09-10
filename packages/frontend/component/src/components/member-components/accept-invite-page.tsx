@@ -18,13 +18,15 @@ export const AcceptInvitePage = ({
       title={t['Successfully joined!']()}
       subtitle={
         <div className={styles.content}>
+          {/* 显示邮箱而非昵称：昵称可以随便改，邮箱才是能对上号的标识，
+              也和邀请邮件里的落款保持一致 */}
           <div className={styles.userWrapper}>
             <Avatar
               url={inviteInfo.user.avatarUrl || ''}
               name={inviteInfo.user.name}
               size={20}
             />
-            <span className={styles.inviteName}>{inviteInfo.user.name}</span>
+            <span className={styles.inviteName}>{inviteInfo.user.email}</span>
           </div>
           <div>{t['invited you to join']()}</div>
           {/* 工作区头像来自 base64 内联数据，工作区没设头像时就是一个空的

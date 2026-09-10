@@ -8,6 +8,7 @@ query getInviteInfo($inviteId: String!) {
     user {
       id
       name
+      email
       avatarUrl
     }
     status
