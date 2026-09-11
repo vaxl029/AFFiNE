@@ -4,9 +4,7 @@ import {
   OnelineCodeBlock,
   P,
   SecondaryText,
-  SITE_NAME,
   Template,
-  Title,
 } from '../components';
 
 export type SignInProps = {
@@ -18,7 +16,6 @@ export type SignInProps = {
 export default function SignIn(props: SignInProps) {
   return (
     <Template>
-      <Title>{`登录 ${props.serverName ?? SITE_NAME}`}</Title>
       <Content>
         <P>你正在登录，验证码如下：</P>
         <OnelineCodeBlock>{props.otp}</OnelineCodeBlock>

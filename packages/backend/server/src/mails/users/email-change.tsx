@@ -1,4 +1,4 @@
-import { Bold, Button, Content, P, Template, Title } from '../components';
+import { Bold, Button, Content, P, Template } from '../components';
 
 export type ChangeEmailProps = {
   url: string;
@@ -7,7 +7,6 @@ export type ChangeEmailProps = {
 export default function ChangeEmail(props: ChangeEmailProps) {
   return (
     <Template>
-      <Title>验证你当前的邮箱</Title>
       <Content>
         <P>
           你请求更换与账号绑定的邮箱地址。

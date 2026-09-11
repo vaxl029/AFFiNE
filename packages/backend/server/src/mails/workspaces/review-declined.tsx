@@ -3,7 +3,6 @@ import {
   Content,
   P,
   Template,
-  Title,
   Workspace,
   type WorkspaceProps,
 } from '../components';
@@ -18,7 +17,6 @@ export default function LinkInvitationReviewDeclined(
   const { workspace } = props;
   return (
     <Template>
-      <Title>加入申请被拒绝</Title>
       <Content>
         <P>
           你加入 <Workspace {...workspace} /> 的申请已被工作区管理员拒绝。

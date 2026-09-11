@@ -1,4 +1,4 @@
-import { Bold, Button, Content, P, Template, Title } from '../components';
+import { Bold, Button, Content, P, Template } from '../components';
 
 export type ChangePasswordProps = {
   url: string;
@@ -7,7 +7,6 @@ export type ChangePasswordProps = {
 export default function ChangePassword(props: ChangePasswordProps) {
   return (
     <Template>
-      <Title>修改你的密码</Title>
       <Content>
         <P>
           点击下面的按钮重置密码，该链接将在 <Bold>30 分钟</Bold>后失效。

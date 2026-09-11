@@ -6,7 +6,6 @@ import {
   type DocProps,
   P,
   Template,
-  Title,
   User,
   type UserProps,
 } from '../components';
@@ -20,7 +19,6 @@ export function Comment(props: CommentProps) {
   const { user, doc } = props;
   return (
     <Template>
-      <Title>你有一条新评论</Title>
       <Content>
         <P>
           <User {...user} /> 评论了 <Doc {...doc} />。

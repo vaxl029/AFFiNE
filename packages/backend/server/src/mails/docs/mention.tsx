@@ -6,7 +6,6 @@ import {
   type DocProps,
   P,
   Template,
-  Title,
   User,
   type UserProps,
 } from '../components';
@@ -20,7 +19,6 @@ export function Mention(props: MentionProps) {
   const { user, doc } = props;
   return (
     <Template>
-      <Title>有人提到了你</Title>
       <Content>
         <P>
           <User {...user} /> 在 <Doc {...doc} /> 中提到了你。

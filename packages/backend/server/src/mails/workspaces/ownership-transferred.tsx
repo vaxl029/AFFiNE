@@ -3,7 +3,6 @@ import {
   Content,
   P,
   Template,
-  Title,
   Workspace,
   type WorkspaceProps,
 } from '../components';
@@ -16,7 +15,6 @@ export default function OwnershipTransferred(props: OwnershipTransferredProps) {
   const { workspace } = props;
   return (
     <Template>
-      <Title>所有权已转移</Title>
       <Content>
         <P>
           你已转移 <Workspace {...workspace} />{' '}

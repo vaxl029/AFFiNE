@@ -1,4 +1,4 @@
-import { Bold, Button, Content, P, Template, Title } from '../components';
+import { Bold, Button, Content, P, Template } from '../components';
 
 export type VerifyEmailProps = {
   url: string;
@@ -7,7 +7,6 @@ export type VerifyEmailProps = {
 export default function VerifyEmail(props: VerifyEmailProps) {
   return (
     <Template>
-      <Title>验证你的邮箱地址</Title>
       <Content>
         <P>
           你请求验证与账号绑定的邮箱地址。

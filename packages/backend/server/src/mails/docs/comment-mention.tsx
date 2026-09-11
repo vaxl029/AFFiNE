@@ -6,7 +6,6 @@ import {
   type DocProps,
   P,
   Template,
-  Title,
   User,
   type UserProps,
 } from '../components';
@@ -20,7 +19,6 @@ export function CommentMention(props: CommentMentionProps) {
   const { user, doc } = props;
   return (
     <Template>
-      <Title>有人在评论中提到了你</Title>
       <Content>
         <P>
           <User {...user} /> 在 <Doc {...doc} /> 的评论中提到了你。

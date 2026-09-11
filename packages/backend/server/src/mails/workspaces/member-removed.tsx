@@ -3,7 +3,6 @@ import {
   Content,
   P,
   Template,
-  Title,
   Workspace,
   type WorkspaceProps,
 } from '../components';
@@ -16,7 +15,6 @@ export default function MemberRemoved(props: MemberRemovedProps) {
   const { workspace } = props;
   return (
     <Template>
-      <Title>你已被移出工作区</Title>
       <Content>
         <P>
           你已被移出 <Workspace {...workspace} />

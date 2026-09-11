@@ -3,7 +3,6 @@ import {
   Content,
   P,
   Template,
-  Title,
   Workspace,
   type WorkspaceProps,
 } from '../components';
@@ -17,7 +16,6 @@ export default function OwnershipReceived(props: OwnershipReceivedProps) {
 
   return (
     <Template>
-      <Title>你已成为工作区所有者</Title>
       <Content>
         <P>
           你已被指定为 <Workspace {...workspace} />{' '}

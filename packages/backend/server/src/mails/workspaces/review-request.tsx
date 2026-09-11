@@ -4,7 +4,6 @@ import {
   Content,
   P,
   Template,
-  Title,
   User,
   type UserProps,
   Workspace,
@@ -23,9 +22,6 @@ export default function LinkInvitationReviewRequest(
   const { workspace, user, url } = props;
   return (
     <Template>
-      <Title>
-        有人申请加入 <Workspace {...workspace} size={24} />
-      </Title>
       <Content>
         <P>
           <User {...user} /> 申请加入 <Workspace {...workspace} />。
