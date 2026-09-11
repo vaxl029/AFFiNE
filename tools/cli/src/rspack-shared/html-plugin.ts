@@ -61,7 +61,12 @@ export const getPublicPath = (BUILD_CONFIG: BUILD_CONFIG_TYPE) => {
   }
 };
 
-// 站点描述：注入 <meta description> 与社交卡片，替换上游的 AFFiNE 官方文案
+// 站点描述：注入 <meta description> 与社交卡片，替换上游的 AFFiNE 官方文案。
+//
+// 关联改动在 template.html 的 og/twitter 系列标签：上游默认指向 affine.pro
+// 的文案与图床，自建实例分享出去会显示官方品牌，那里已全部改为本站信息，
+// 站点图标复用 apple-touch-icon，免得额外维护一张 og 图。说明写在这边是
+// 因为 HTML 注释会原样输出到生产页面。
 const DESCRIPTION = `文档、白板与数据库合一的个人知识库。`;
 
 const gitShortHash = once(() => {
