@@ -12,6 +12,7 @@ import {
   MentionNotificationCreate,
   Models,
   NotificationType,
+  UnionNotification,
   UnionNotificationBody,
   Workspace,
 } from '../../models';
@@ -568,13 +569,56 @@ export class NotificationService {
   }
 
   /**
+   * 剔除"人已经在工作区里了"的邀请通知，并就地标记为已读。
+   *
+   * 光在接受邀请那一刻清理是不够的：邀请可能是走别的路子兑现的（管理员
+   * 直接加人、走链接申请获批），更别说修复上线前就已经堆在库里的历史
+   * 记录——那些卡片没有任何时机会被清掉，会一直挂在列表里当陷阱。
+   *
+   * 放在读取路径上顺手自愈：查一次用户的活跃工作区，命中的直接过滤掉，
+   * 同时写回 read=true，免得列表空了而未读红点还亮着。
+   */
+  private async dropSettledInvitations<T extends UnionNotification>(
+    userId: string,
+    notifications: T[]
+  ): Promise<T[]> {
+    const invitations = notifications.filter(
+      n => n.type === NotificationType.Invitation
+    );
+
+    if (invitations.length === 0) {
+      return notifications;
+    }
+
+    const roles = await this.models.workspaceUser.getUserActiveRoles(userId);
+    const joined = new Set(roles.map(role => role.workspaceId));
+
+    const settled = invitations.filter(n => joined.has(n.body.workspaceId));
+    if (settled.length === 0) {
+      return notifications;
+    }
+
+    const settledIds = new Set(settled.map(n => n.id));
+    await Promise.all(
+      Array.from(new Set(settled.map(n => n.body.workspaceId))).map(
+        workspaceId =>
+          this.models.notification.markInvitationsAsRead(userId, workspaceId)
+      )
+    );
+    await this.publishCountChanged(userId, 'read');
+
+    return notifications.filter(n => !settledIds.has(n.id));
+  }
+
+  /**
    * Find notifications by user id, order by createdAt desc
    */
   async findManyByUserId(userId: string, options?: PaginationInput) {
-    const notifications = await this.models.notification.findManyByUserId(
+    const rows = await this.models.notification.findManyByUserId(
       userId,
       options
     );
+    const notifications = await this.dropSettledInvitations(userId, rows);
 
     // fill user info
     const userIds = new Set(notifications.map(n => n.body.createdByUserId));
