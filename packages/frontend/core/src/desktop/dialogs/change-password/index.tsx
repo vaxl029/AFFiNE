@@ -15,6 +15,7 @@ import type {
   GLOBAL_DIALOG_SCHEMA,
 } from '@affine/core/modules/dialogs';
 import { Unreachable } from '@affine/env/constant';
+import { UserFriendlyError } from '@affine/error';
 import {
   sendChangePasswordEmailMutation,
   sendSetPasswordEmailMutation,
@@ -88,9 +89,18 @@ export const ChangePasswordDialog = ({
       setHasSentEmail(true);
     } catch (err) {
       console.error(err);
-      notify.error({
-        title: t['com.affine.auth.sent.change.email.fail'](),
-      });
+      // 这里原本把所有失败都说成"请稍后重试"，于是真正的原因——比如邮箱
+      // 尚未验证（sendChangePasswordEmail 要求 emailVerified）——被盖住，
+      // 让人以为是临时故障，反复重试却永远不成。
+      const error = UserFriendlyError.fromAny(err);
+      if (`error.${error.name}` in t) {
+        notify.error(error);
+      } else {
+        // 没有对应译文时才退回原来那句笼统提示
+        notify.error({
+          title: t['com.affine.auth.sent.change.email.fail'](),
+        });
+      }
     } finally {
       setLoading(false);
     }

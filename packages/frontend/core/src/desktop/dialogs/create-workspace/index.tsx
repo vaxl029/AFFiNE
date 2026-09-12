@@ -12,6 +12,7 @@ import {
 } from '@affine/core/modules/dialogs';
 import { WorkspacesService } from '@affine/core/modules/workspace';
 import { buildShowcaseWorkspace } from '@affine/core/utils/first-app-data';
+import { UserFriendlyError } from '@affine/error';
 import { useI18n } from '@affine/i18n';
 import track from '@affine/track';
 import { FrameworkScope, useLiveData, useService } from '@toeverything/infra';
@@ -154,10 +155,10 @@ const CustomConfirmButton = ({
       onCreated(res);
     } catch (e) {
       console.error(e);
-      notify.error({
-        title: 'Failed to create workspace',
-        message: 'please try again later.',
-      });
+      // 原本无论什么原因都报"请稍后重试"，而且是写死的英文。没有建工作区
+      // 的权限时这句话是误导——再试多少次都一样。交给 UserFriendlyError
+      // 说出真实原因。
+      notify.error(UserFriendlyError.fromAny(e));
     } finally {
       setLoading(false);
     }

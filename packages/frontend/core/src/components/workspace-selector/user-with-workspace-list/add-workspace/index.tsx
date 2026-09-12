@@ -8,6 +8,7 @@ import { ServerFeature } from '@affine/graphql';
 import { useI18n } from '@affine/i18n';
 import { ImportIcon, PlusIcon } from '@blocksuite/icons/rc';
 import { useLiveData, useService } from '@toeverything/infra';
+import { useEffect } from 'react';
 
 import * as styles from './index.css';
 
@@ -32,9 +33,18 @@ export const AddWorkspace = ({
       status => status === 'authenticated'
     )
   );
+  const userFeatureService = useService(UserFeatureService);
   const canCreateWorkspace = useLiveData(
-    useService(UserFeatureService).userFeature.canCreateWorkspace$
+    userFeatureService.userFeature.canCreateWorkspace$
   );
+
+  // UserFeatureService 只在 AccountChanged 时自行刷新，而新开标签页是从
+  // cookie 恢复会话——账号并没有"改变"，事件不发，features 就一直停在
+  // 未加载。于是这里判不出无权限，入口照常露出来。其余消费方（账号菜单、
+  // 设置页）也都是自己拉一次，照做。
+  useEffect(() => {
+    userFeatureService.userFeature.revalidate();
+  }, [userFeatureService]);
 
   // 服务端关掉 LocalWorkspace 后，未登录用户点这里只会被弹回登录框。
   // 与其给出 "可以先建个工作区试试" 的错误引导，不如直接不显示入口。
