@@ -259,6 +259,11 @@ const getMemberStatus = (member: Member): I18nString => {
       return 'Under-Review';
     case WorkspaceMemberStatus.AllocatingSeat:
       return 'Allocating Seat';
+    // 被驳回的记录只为留痕而存在，查询已把它挡在成员名单之外，正常到不了
+    // 这里。留一个分支是为了穷尽性检查——将来谁把过滤条件改松了，这里会
+    // 显示成"已拒绝"而不是悄悄退化成未定义。
+    case WorkspaceMemberStatus.Declined:
+      return 'Declined';
     case WorkspaceMemberStatus.Accepted:
       switch (member.permission) {
         case Permission.Owner:

@@ -9,7 +9,15 @@ import { BaseModel } from './base';
 import { DocRole, WorkspaceRole } from './common';
 
 type WorkspaceMemberRole = 'owner' | 'admin' | 'member';
-type WorkspaceInvitationStatus = 'pending' | 'waiting_review' | 'waiting_seat';
+// 'declined' 是本分支新增的终态：管理员驳回加入申请后留下的痕迹。
+// 上游驳回时直接删行，于是系统事后分不清"没申请过"和"被拒过"，对方刷新
+// 一下就又拿到申请入口，驳回等于没发生。数据库里这一列是自由文本而非
+// 枚举，加值不需要迁移。
+type WorkspaceInvitationStatus =
+  | 'pending'
+  | 'waiting_review'
+  | 'waiting_seat'
+  | 'declined';
 type WorkspaceInvitationKind = 'email' | 'link';
 type PermissionSource = 'email' | 'link' | 'legacy';
 type DocGrantRole = 'owner' | 'manager' | 'editor' | 'commenter' | 'reader';
@@ -52,6 +60,8 @@ export function workspaceStatusFromNew(
       return WorkspaceMemberStatus.UnderReview;
     case 'waiting_seat':
       return WorkspaceMemberStatus.NeedMoreSeat;
+    case 'declined':
+      return WorkspaceMemberStatus.Declined;
   }
 }
 
@@ -75,6 +85,8 @@ export function workspaceStatusToInvitationState(
     case WorkspaceMemberStatus.NeedMoreSeat:
     case WorkspaceMemberStatus.NeedMoreSeatAndReview:
       return 'waiting_seat';
+    case WorkspaceMemberStatus.Declined:
+      return 'declined';
     default:
       return null;
   }

@@ -3548,6 +3548,7 @@ export enum WorkspaceInviteLinkExpireTime {
 export enum WorkspaceMemberStatus {
   Accepted = 'Accepted',
   AllocatingSeat = 'AllocatingSeat',
+  Declined = 'Declined',
   NeedMoreSeat = 'NeedMoreSeat',
   NeedMoreSeatAndReview = 'NeedMoreSeatAndReview',
   Pending = 'Pending',

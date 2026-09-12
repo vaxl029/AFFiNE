@@ -3,6 +3,7 @@ import {
   AcceptInvitePage,
   ExpiredPage,
   JoinFailedPage,
+  RequestDeclinedPage,
   RequestToJoinPage,
   SentRequestPage,
 } from '@affine/component/member-components';
@@ -111,6 +112,12 @@ const AcceptInvite = ({ inviteId: targetInviteId }: { inviteId: string }) => {
         inviteInfo={inviteInfo}
       />
     );
+  }
+
+  // 申请已被驳回：这是终态，不该再给"请求加入"的按钮当作没发生过。
+  // 要重新进来只能由管理员主动邀请。
+  if (inviteInfo?.status === WorkspaceMemberStatus.Declined) {
+    return <RequestDeclinedPage inviteInfo={inviteInfo} />;
   }
 
   if (

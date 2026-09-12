@@ -2817,6 +2817,7 @@ enum WorkspaceInviteLinkExpireTime {
 enum WorkspaceMemberStatus {
   Accepted
   AllocatingSeat
+  Declined
   NeedMoreSeat
   NeedMoreSeatAndReview
   Pending

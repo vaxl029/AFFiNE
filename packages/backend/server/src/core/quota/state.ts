@@ -317,8 +317,10 @@ export class QuotaStateService {
       this.db.workspaceInvitation.count({
         where: {
           workspaceId,
+          // 尚待审批和已被驳回的都不占名额——前者还没人答应，后者已经
+          // 被否了。被驳回的记录只为留痕而保留，不该继续计费。
           status: {
-            not: 'waiting_review',
+            notIn: ['waiting_review', 'declined'],
           },
         },
       }),

@@ -486,6 +486,8 @@ enum WorkspaceMemberStatus {
   NeedMoreSeat
   /// Activate workspace member
   Accepted
+  /// Join request was turned down by an administrator
+  Declined
   /// @deprecated
   NeedMoreSeatAndReview
 }

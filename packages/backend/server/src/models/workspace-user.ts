@@ -132,7 +132,14 @@ export class WorkspaceUserModel extends BaseModel {
     }
 
     if (oldRole) {
-      if (oldRole.type === role) {
+      // 角色没变就当无事发生——但前提是状态也没要求变。被驳回的人角色仍是
+      // Collaborator，管理员重新邀请他时传的是 Pending；若只比角色就早退，
+      // 那条 Declined 会原地不动，人再也邀不回来。
+      const wantedStatus = defaultData.status;
+      if (
+        oldRole.type === role &&
+        (wantedStatus === undefined || wantedStatus === oldRole.status)
+      ) {
         return oldRole;
       }
 

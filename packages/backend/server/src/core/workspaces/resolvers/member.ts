@@ -330,7 +330,13 @@ export class WorkspaceMemberResolver {
             workspaceId,
             target.id
           );
-          if (existingMember) {
+          // 被驳回的人不算"已在工作区"——那条记录只是留痕，用来挡住他自己
+          // 再申请。管理员主动邀请要能把他捞回来，否则一次误点就永久拒之
+          // 门外，而且没有任何界面能撤销。
+          if (
+            existingMember &&
+            existingMember.status !== WorkspaceMemberStatus.Declined
+          ) {
             throw new AlreadyInSpace({ spaceId: workspaceId });
           }
 
@@ -667,19 +673,30 @@ export class WorkspaceMemberResolver {
           : 'Workspace.Users.Manage'
       );
 
-    await this.models.workspaceUser.delete(workspaceId, userId);
-
     if (role.status === WorkspaceMemberStatus.UnderReview) {
+      // 驳回申请要留痕，不能删行。上游在这里一删了事，于是事后没有任何
+      // 依据能区分"从没申请过"和"申请被拒了"——对方刷新一下就又拿到申请
+      // 入口，驳回等于没发生过。改标记终态，配额与成员名单都不再算它。
+      await this.models.workspaceUser.setStatus(
+        workspaceId,
+        userId,
+        WorkspaceMemberStatus.Declined
+      );
       await this.workspaceService.sendReviewDeclinedNotification(
         userId,
         workspaceId,
         me.id
       );
-    } else if (role.status === WorkspaceMemberStatus.Accepted) {
-      this.event.emit('workspace.members.removed', {
-        userId,
-        workspaceId,
-      });
+    } else {
+      // 移出已在册的成员则是真的删除：对方将来还可能被重新邀请。
+      await this.models.workspaceUser.delete(workspaceId, userId);
+
+      if (role.status === WorkspaceMemberStatus.Accepted) {
+        this.event.emit('workspace.members.removed', {
+          userId,
+          workspaceId,
+        });
+      }
     }
 
     this.event.emit('workspace.members.updated', {
@@ -738,6 +755,14 @@ export class WorkspaceMemberResolver {
       );
 
       if (role) {
+        // 申请已被驳回的人不能靠再点一次链接卷土重来。要重新进来，得由
+        // 管理员主动邀请——那条路会覆盖掉这个终态。
+        if (role.status === WorkspaceMemberStatus.Declined) {
+          throw new ActionForbidden(
+            'Your request to join this workspace has been declined.'
+          );
+        }
+
         // if status is pending, should accept the invitation directly
         if (role.status === WorkspaceMemberStatus.Pending) {
           await this.acceptInvitationByEmail(role);

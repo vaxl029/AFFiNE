@@ -177,6 +177,9 @@ export async function queryCompatRows(
       FROM workspace_invitations wi
       INNER JOIN users u ON u.id = wi.invitee_user_id
       WHERE wi.workspace_id = ${workspaceId}
+        -- 被驳回的申请留着只为记住"这人被拒过"，不是成员，别列进名单。
+        -- 上面的 CASE 也没有它的分支，漏进来会被显示成 Pending。
+        AND wi.status <> 'declined'
     ) roles
     WHERE true
       ${after}
@@ -252,6 +255,7 @@ export async function searchCompatRows(
       FROM workspace_invitations wi
       INNER JOIN users u ON u.id = wi.invitee_user_id
       WHERE wi.workspace_id = ${workspaceId}
+        AND wi.status <> 'declined'
     ) roles
     WHERE ("userEmail" ILIKE ${`%${query}%`} OR "userName" ILIKE ${`%${query}%`})
       ${after}
@@ -270,7 +274,10 @@ export async function countWorkspaceUsers(
     db.workspaceMember.count({
       where: { workspaceId, state: 'active' },
     }),
-    db.workspaceInvitation.count({ where: { workspaceId } }),
+    // 已驳回的申请只是留痕，不属于工作区成员
+    db.workspaceInvitation.count({
+      where: { workspaceId, status: { not: 'declined' } },
+    }),
   ]);
   return members + invitations;
 }
@@ -286,8 +293,9 @@ export async function countChargedWorkspaceUsers(
     db.workspaceInvitation.count({
       where: {
         workspaceId,
+        // 见 QuotaStateService.getChargedMemberCount：待审批与已驳回都不计费
         status: {
-          not: 'waiting_review',
+          notIn: ['waiting_review', 'declined'],
         },
       },
     }),
