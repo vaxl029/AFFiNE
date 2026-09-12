@@ -90,14 +90,17 @@ const AcceptInvite = ({ inviteId: targetInviteId }: { inviteId: string }) => {
     return null;
   }
 
-  if (!inviteInfo && !loading) {
-    return <ExpiredPage onOpenAffine={onOpenAffine} />;
-  }
-
+  // 错误优先于“查不到”。请求失败时 inviteInfo 必然为空，若先判空就会把
+  // 所有失败——申请被管理员拒绝、权限不足、网络出错——一律谎报成“链接已
+  // 失效”，而链接本身好端端的。上游的顺序让 JoinFailedPage 成了死代码。
   if (error || acceptError) {
     return (
       <JoinFailedPage inviteInfo={inviteInfo} error={error || acceptError} />
     );
+  }
+
+  if (!inviteInfo && !loading) {
+    return <ExpiredPage onOpenAffine={onOpenAffine} />;
   }
 
   // for email invite

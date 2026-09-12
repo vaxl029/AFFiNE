@@ -433,14 +433,28 @@ const InvitationReviewDeclinedNotificationItem = ({
 }: {
   notification: Notification;
 }) => {
+  const notificationListService = useService(NotificationListService);
   const t = useI18n();
   const body =
     notification.body as InvitationReviewDeclinedNotificationBodyType;
   const memberInactived = !body.createdByUser;
   const workspaceInactived = !body.workspace;
 
+  // 申请被拒绝后无处可去，但这张卡片总得能收掉。上游只给了右下角那个
+  // hover 才浮现的删除按钮，卡片本身不响应点击——不知道要悬停的人会
+  // 一直点不掉它。这里让点击本体即视为已读。
+  const handleClick = useCallback(() => {
+    track.$.sidebar.notifications.clickNotification({
+      type: notification.type,
+      item: 'dismiss',
+    });
+    notificationListService.readNotification(notification.id).catch(err => {
+      console.error(err);
+    });
+  }, [notification, notificationListService]);
+
   return (
-    <div className={styles.itemContainer}>
+    <div className={styles.itemContainer} onClick={handleClick}>
       <Avatar
         size={22}
         name={body.createdByUser?.name}
