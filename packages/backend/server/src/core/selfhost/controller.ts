@@ -63,6 +63,11 @@ export class CustomSetupController {
       email: input.email,
       password: input.password,
       registered: true,
+      // 首个管理员是在安装向导里自己填的邮箱，且这个账号此后只用密码登录，
+      // 永远不会走 magic link 的 fulfill()——那是唯一补写此字段的地方。
+      // 不在这里标记，它就永久停留在"邮箱未验证"，而 sendChangePasswordEmail
+      // 恰恰要求 emailVerified：装完就再也改不了自己的密码。
+      emailVerifiedAt: new Date(),
     });
 
     try {
