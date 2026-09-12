@@ -14,6 +14,9 @@ export const JoinFailedPage = ({
 }) => {
   const userFriendlyError = UserFriendlyError.fromAny(error);
   const t = useI18n();
+  const errorKey = `error.${userFriendlyError.name}`;
+  const translated = t[errorKey]();
+  const translatedError = translated === errorKey ? null : translated;
   return (
     <AuthPageContainer
       title={t['com.affine.fail-to-join-workspace.title']()}
@@ -35,11 +38,9 @@ export const JoinFailedPage = ({
             <div>{t['com.affine.fail-to-join-workspace.description-2']()}</div>
           </div>
         ) : (
-          <div>
-            {t['error.' + userFriendlyError.name]()}
-            <br />
-            {userFriendlyError.message}
-          </div>
+          // 上游把译文和后端英文原文一并列出，等于同一句话说两遍。取译文，
+          // 没有对应译文时（i18n 对未知 key 原样返回）再退回原文。
+          <div>{translatedError ?? userFriendlyError.message}</div>
         )
       }
     />

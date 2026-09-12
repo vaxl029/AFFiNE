@@ -374,6 +374,10 @@ export function useAFFiNEI18N(): {
       */
     ["Under-Review"](): string;
     /**
+      * `Declined`
+      */
+    Declined(): string;
+    /**
       * `Need More Seats`
       */
     ["Need-More-Seats"](): string;
@@ -8879,6 +8883,10 @@ export function useAFFiNEI18N(): {
       */
     ["com.affine.request-to-join-workspace.button"](): string;
     /**
+      * `Request declined`
+      */
+    ["com.affine.request-declined.title"](): string;
+    /**
       * `Request Sent successfully`
       */
     ["com.affine.sent-request-to-join-workspace.title"](): string;
@@ -11023,6 +11031,14 @@ export const TypedTrans: {
     }, {
         ["1"]: JSX.Element;
         ["2"]: JSX.Element;
+    }>>;
+    /**
+      * `A workspace administrator declined your request to join <1>{{workspaceName}}</1>. To join, ask them to invite you.`
+      */
+    ["com.affine.request-declined.description"]: ComponentType<TypedTransProps<{
+        readonly workspaceName: string;
+    }, {
+        ["1"]: JSX.Element;
     }>>;
     /**
       * `You requested to join <1/> <2>{{workspaceName}}</2> with <3>{{userEmail}}</3>, the workspace owner and team admins will review your request.`
