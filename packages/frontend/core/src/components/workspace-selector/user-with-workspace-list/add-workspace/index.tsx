@@ -1,5 +1,9 @@
 import { MenuItem } from '@affine/component/ui/menu';
-import { AuthService, DefaultServerService } from '@affine/core/modules/cloud';
+import {
+  AuthService,
+  DefaultServerService,
+  UserFeatureService,
+} from '@affine/core/modules/cloud';
 import { ServerFeature } from '@affine/graphql';
 import { useI18n } from '@affine/i18n';
 import { ImportIcon, PlusIcon } from '@blocksuite/icons/rc';
@@ -28,11 +32,20 @@ export const AddWorkspace = ({
       status => status === 'authenticated'
     )
   );
+  const canCreateWorkspace = useLiveData(
+    useService(UserFeatureService).userFeature.canCreateWorkspace$
+  );
 
   // 服务端关掉 LocalWorkspace 后，未登录用户点这里只会被弹回登录框。
   // 与其给出 "可以先建个工作区试试" 的错误引导，不如直接不显示入口。
   // 桌面端 BUILD_CONFIG.isNative 恒为 true，不受影响。
   if (!enableLocalWorkspace && !isAuthenticated) {
+    return null;
+  }
+
+  // 没有建工作区的资格就别摆入口。判定在服务端（createWorkspace 会拒绝），
+  // 这里只管露不露。null 表示还没查到，先不藏，免得入口闪一下才出现。
+  if (isAuthenticated && canCreateWorkspace === false) {
     return null;
   }
 

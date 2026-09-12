@@ -1300,6 +1300,7 @@ export interface ExpectToUpdateDocUserRoleDataType {
 
 export enum FeatureType {
   Admin = 'Admin',
+  WorkspaceCreation = 'WorkspaceCreation',
 }
 
 export interface ForkChatSessionInput {

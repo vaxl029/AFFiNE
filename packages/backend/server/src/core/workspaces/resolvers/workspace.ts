@@ -12,6 +12,7 @@ import GraphQLUpload from 'graphql-upload/GraphQLUpload.mjs';
 
 import type { FileUpload } from '../../../base';
 import {
+  ActionForbidden,
   AFFiNELogger,
   registerObjectType,
   SpaceAccessDenied,
@@ -19,6 +20,7 @@ import {
 } from '../../../base';
 import { Models } from '../../../models';
 import { CurrentUser } from '../../auth';
+import { FeatureService } from '../../features';
 import type { DotToUnderline } from '../../permission';
 import {
   mapPermissionsToGraphqlPermissions,
@@ -69,6 +71,7 @@ export class WorkspaceResolver {
     private readonly quota: QuotaService,
     private readonly models: Models,
     private readonly workspaceService: WorkspaceService,
+    private readonly feature: FeatureService,
     private readonly logger: AFFiNELogger
   ) {
     logger.setContext(WorkspaceResolver.name);
@@ -212,6 +215,15 @@ export class WorkspaceResolver {
     @Args({ name: 'init', type: () => GraphQLUpload, nullable: true })
     init: FileUpload | null
   ) {
+    // 上游对任何登录用户都放行。但账号和工作区是两层：被邀请进来的人拿到
+    // 的是一个完整的实例账号，于是也能另起炉灶、在自己的工作区里再邀请
+    // 别人，邀请链一路蔓延。收成一项要显式授予的能力。
+    if (!(await this.feature.canCreateWorkspace(user.id))) {
+      throw new ActionForbidden(
+        'You are not allowed to create a workspace. Please contact the administrator.'
+      );
+    }
+
     const workspace = await this.models.workspace.create(user.id);
 
     if (init) {

@@ -1099,6 +1099,7 @@ type ExpectToUpdateDocUserRoleDataType {
 
 enum FeatureType {
   Admin
+  WorkspaceCreation
 }
 
 input ForkChatSessionInput {

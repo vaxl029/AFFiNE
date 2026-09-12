@@ -27,4 +27,15 @@ export class FeatureService {
   addAdmin(userId: string) {
     return this.models.userFeature.add(userId, 'administrator', 'Admin user');
   }
+
+  // ======== Workspace creation ========
+  /**
+   * 能否自建工作区。管理员一律豁免，其余人看有没有被授予这项能力。
+   */
+  async canCreateWorkspace(userId: string) {
+    if (await this.isAdmin(userId)) {
+      return true;
+    }
+    return this.models.userFeature.has(userId, 'workspace_creation');
+  }
 }

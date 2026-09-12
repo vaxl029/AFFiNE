@@ -23,6 +23,17 @@ export class UserFeature extends Entity {
     features === null ? null : features?.some(f => f === FeatureType.Admin)
   );
 
+  // 建工作区的资格，由 admin 面板逐人授予；管理员一律豁免。服务端才是
+  // 判定处（createWorkspace 会拒绝），这里只用来决定入口露不露——否则
+  // 按钮还在，点下去只会撞一个错误提示。
+  canCreateWorkspace$ = this.features$.map(features =>
+    features === null
+      ? null
+      : features?.some(
+          f => f === FeatureType.Admin || f === FeatureType.WorkspaceCreation
+        )
+  );
+
   isRevalidating$ = new LiveData(false);
   error$ = new LiveData<any | null>(null);
 
