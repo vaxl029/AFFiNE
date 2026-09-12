@@ -289,6 +289,11 @@ export class AuthController {
     return {};
   }
 
+  // 类上的 @Throttle('strict') 是一个跨接口共享的桶（限流键不含控制器与
+  // 方法名），登录、验证码、preflight 全都往里记数，20 次/分钟很快见底。
+  // 这个接口只是已登录用户读一下自己的设备列表，没有滥用价值，却会因为
+  // 刚改完密码就打不开设置页。单独放宽。
+  @Throttle('default', { limit: 120, ttl: 60_000 })
   @Get('/sessions')
   @Header('Cache-Control', 'no-store')
   @Header('Pragma', 'no-cache')
