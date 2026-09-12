@@ -466,18 +466,16 @@ export class WorkspaceMemberResolver {
     });
     await this.assertWorkspaceNameCanInvite(workspaceId);
 
+    // 每次都签发一条新链接，且不动此前发出去的那些。
+    //
+    // 上游在这里发现现存的有效链接会原样奉还，于是旧链接到期前根本生不出
+    // 新的——而一条链接只兑换一个注册名额，这等于把邀请卡死成串行。
+    //
+    // 每条链接自带 TTL、自带独立的名额计数（见 InviteLinkSignupService），
+    // 彼此互不影响，所以同时存在多条是安全的。workspace 那把键只是指向
+    // 最近一条的游标，供 UI 回显与撤销使用；被它覆盖的旧链接依然有效，
+    // 各自按自己的有效期到期。
     const cacheWorkspaceId = `workspace:inviteLink:${workspaceId}`;
-    const invite = await this.cache.get<{ inviteId: string }>(cacheWorkspaceId);
-    if (typeof invite?.inviteId === 'string') {
-      const expireTime = await this.cache.ttl(cacheWorkspaceId);
-      if (isValidCacheTtl(expireTime)) {
-        return {
-          link: this.url.link(`/invite/${invite.inviteId}`),
-          expireTime: new Date(Date.now() + expireTime * 1000), // Convert seconds to milliseconds
-        };
-      }
-    }
-
     const inviteId = nanoid();
     const cacheInviteId = inviteLinkCacheKey(inviteId);
     await this.cache.set(cacheWorkspaceId, { inviteId }, { ttl: expireTime });

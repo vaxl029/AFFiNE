@@ -1290,7 +1290,7 @@ export function useAFFiNEI18N(): {
       */
     ["com.affine.auth.later"](): string;
     /**
-      * `Open AFFiNE`
+      * `Back to home`
       */
     ["com.affine.auth.open.affine"](): string;
     /**

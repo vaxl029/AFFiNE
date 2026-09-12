@@ -42,7 +42,7 @@ const getMenuItems = (t: ReturnType<typeof useI18n>) => [
 ];
 
 export const LinkInvite = ({
-  invitationLink,
+  invitationLink: existingLink,
   copyTextToClipboard,
   generateInvitationLink,
   revokeInvitationLink,
@@ -58,6 +58,12 @@ export const LinkInvite = ({
   const [selectedValue, setSelectedValue] = useState(
     WorkspaceInviteLinkExpireTime.OneWeek
   );
+
+  // 一条链接只兑换一个名额，所以它是"发出去就用掉"的东西，不是常驻凭证。
+  // 每次打开面板都从选有效期开始，不把上一次的链接摆在这儿——那只会让人
+  // 误以为它还能再邀一个人。生成过才显示，关掉面板即归零。
+  const [generated, setGenerated] = useState(false);
+  const invitationLink = generated ? existingLink : null;
   const menuItems = getMenuItems(t);
   const items = useMemo(() => {
     return menuItems.map(item => (
@@ -73,13 +79,15 @@ export const LinkInvite = ({
   );
 
   const onGenerate = useCallback(() => {
-    generateInvitationLink(selectedValue).catch(err => {
-      console.error('Failed to generate invitation link: ', err);
-      notify.error({
-        title: 'Failed to generate invitation link',
-        message: err.message,
+    generateInvitationLink(selectedValue)
+      .then(() => setGenerated(true))
+      .catch(err => {
+        console.error('Failed to generate invitation link: ', err);
+        notify.error({
+          title: 'Failed to generate invitation link',
+          message: err.message,
+        });
       });
-    });
   }, [generateInvitationLink, selectedValue]);
 
   const onCopy = useCallback(() => {
@@ -102,6 +110,7 @@ export const LinkInvite = ({
   }, [copyTextToClipboard, invitationLink, t]);
 
   const onReset = useCallback(() => {
+    setGenerated(false);
     revokeInvitationLink().catch(err => {
       console.error('Failed to revoke invitation link: ', err);
       notify.error({
