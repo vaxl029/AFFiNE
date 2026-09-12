@@ -109,8 +109,9 @@ export const AboutAffine = () => {
           name={t['com.affine.telemetry.enable']()}
           desc={t['com.affine.telemetry.enable.desc']()}
         >
+          {/* 与 bootstrap/telemetry.ts 保持一致：默认关闭，显式打开才上报 */}
           <Switch
-            checked={appSettings.enableTelemetry !== false}
+            checked={appSettings.enableTelemetry === true}
             onChange={onSwitchTelemetry}
           />
         </SettingRow>
