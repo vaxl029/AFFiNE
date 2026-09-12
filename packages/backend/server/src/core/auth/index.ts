@@ -76,6 +76,7 @@ export * from './guard';
 export * from './identity';
 export * from './input';
 export {
+  declinedViaLinkCacheKey,
   inviteLinkCacheKey,
   type InviteLinkPayload,
   InviteLinkSignupService,

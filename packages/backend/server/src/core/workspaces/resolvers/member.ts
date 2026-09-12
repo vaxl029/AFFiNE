@@ -40,6 +40,7 @@ import type { GraphqlContext } from '../../../base/graphql';
 import { Models, type WorkspaceUserCompat } from '../../../models';
 import {
   CurrentUser,
+  declinedViaLinkCacheKey,
   inviteLinkCacheKey,
   type InviteLinkPayload,
   Public,
@@ -271,7 +272,14 @@ export class WorkspaceMemberResolver {
             workspaceId,
             target.id
           );
-          if (originRecord) {
+          // 被驳回的记录只是留痕，不代表人在工作区里——邀请要能把他捞回来。
+          // 注意这个判断在下面的循环体里还有一份，两处必须一致：这里拦下
+          // 的候选人连 candidates 都进不去，错误被塞进 results 后直接返回，
+          // 界面上看起来是成功的，实际既没加人也没发信。
+          if (
+            originRecord &&
+            originRecord.status !== WorkspaceMemberStatus.Declined
+          ) {
             throw new AlreadyInSpace({ spaceId: workspaceId });
           }
         }
@@ -640,6 +648,18 @@ export class WorkspaceMemberResolver {
         inviteeId
       );
       status = invitation?.status;
+
+      // 状态是按"人 + 工作区"存的，跟具体哪条链接无关。若不在这里分辨，
+      // 被驳回过的人拿着管理员新发的链接进来，看到的仍是"申请已被拒绝"
+      // 加一个没有按钮的死页面。只有他重新点回被驳回的那条才该如此。
+      if (status === WorkspaceMemberStatus.Declined) {
+        const declinedVia = await this.cache.get<{ inviteId: string }>(
+          declinedViaLinkCacheKey(workspaceId, inviteeId)
+        );
+        if (declinedVia?.inviteId !== inviteId) {
+          status = undefined;
+        }
+      }
     } else {
       const invitation = await this.models.workspaceUser.getById(inviteId);
       status = invitation?.status;
@@ -755,12 +775,17 @@ export class WorkspaceMemberResolver {
       );
 
       if (role) {
-        // 申请已被驳回的人不能靠再点一次链接卷土重来。要重新进来，得由
-        // 管理员主动邀请——那条路会覆盖掉这个终态。
+        // 驳回针对的是那一次申请，不是把人永久关在门外。挡住的只有他被
+        // 驳回时用的那条链接——管理员另发一条新的，就是改了主意。
         if (role.status === WorkspaceMemberStatus.Declined) {
-          throw new ActionForbidden(
-            'Your request to join this workspace has been declined.'
+          const declinedVia = await this.cache.get<{ inviteId: string }>(
+            declinedViaLinkCacheKey(invitation.workspaceId, user.id)
           );
+          if (declinedVia?.inviteId === inviteId) {
+            throw new ActionForbidden(
+              'Your request to join this workspace has been declined.'
+            );
+          }
         }
 
         // if status is pending, should accept the invitation directly
@@ -775,7 +800,8 @@ export class WorkspaceMemberResolver {
       await this.acceptInvitationByLink(
         user,
         invitation.workspaceId,
-        invitation.inviterUserId
+        invitation.inviterUserId,
+        inviteId
       );
       return true;
     }
@@ -858,7 +884,8 @@ export class WorkspaceMemberResolver {
   private async acceptInvitationByLink(
     user: CurrentUser,
     workspaceId: string,
-    inviterId: string
+    inviterId: string,
+    inviteId: string
   ) {
     await this.assertWorkspaceAcceptsMemberChange(workspaceId);
 
@@ -877,6 +904,17 @@ export class WorkspaceMemberResolver {
         inviterId: inviter.id,
       }
     );
+
+    // 记住这次申请走的是哪条链接。管理员驳回后，被挡住的只该是这一条；
+    // 他若另发一条新的，就说明改了主意，那条必须放行。
+    const ttl = await this.cache.ttl(inviteLinkCacheKey(inviteId));
+    if (isValidCacheTtl(ttl)) {
+      await this.cache.set(
+        declinedViaLinkCacheKey(workspaceId, user.id),
+        { inviteId },
+        { ttl: ttl * 1000 }
+      );
+    }
 
     await this.workspaceService.sendReviewRequestNotification(role.id);
     this.event.emit('workspace.members.updated', { workspaceId });

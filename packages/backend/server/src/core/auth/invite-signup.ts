@@ -32,6 +32,19 @@ export const inviteLinkCacheKey = (inviteId: string) =>
 const inviteLinkSignupCountKey = (inviteId: string) =>
   `workspace:inviteLinkSignup:${inviteId}`;
 
+/**
+ * 记住某人的加入申请是在哪条链接上被驳回的。
+ *
+ * 驳回针对的是那一次申请，不是把人永久拒之门外：同一条链接不该再用，
+ * 但管理员另发一条新链接就意味着他改了主意，那条应当放行。两者的区别
+ * 只在 inviteId，所以把它记下来。
+ *
+ * 放在缓存里而不是建表，是因为邀请链接本身就活在缓存里——这条记录跟着
+ * 链接一起过期，语义正好。丢了的后果也只是对方能再申请一次。
+ */
+export const declinedViaLinkCacheKey = (workspaceId: string, userId: string) =>
+  `workspace:declinedVia:${workspaceId}:${userId}`;
+
 // 只认站内的 /invite/:inviteId，且 inviteId 必须是 nanoid 那种字符集。
 // 传进来的地址已经过 isAllowedRedirectUri 校验（站内路径或白名单域名），
 // 这里再收一次口，避免把任意字符串当成 cache key 去查。
