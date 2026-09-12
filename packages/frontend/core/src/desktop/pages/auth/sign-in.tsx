@@ -29,9 +29,15 @@ export const SignIn = ({
 
   useEffect(() => {
     if (error) {
+      // 约定是传错误名（如 INVALID_EMAIL_TOKEN）以便本地化；未知 key 时
+      // i18n 会原样返回 key，据此回退到把参数当现成文案显示——OAuth 等
+      // 调用方目前仍直接传英文原文。
+      const key = `error.${error}`;
+      const translated = t[key]();
+
       notify.error({
         title: t['com.affine.auth.toast.title.failed'](),
-        message: error,
+        message: translated === key ? error : translated,
       });
     }
   }, [error, t]);
